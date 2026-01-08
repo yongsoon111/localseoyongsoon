@@ -1,0 +1,27 @@
+# FastAPI & Server
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-dotenv==1.0.0
+
+# Supabase
+supabase==2.3.4
+postgrest-py==0.13.2
+
+# Pydantic & Validation
+pydantic==2.5.3
+pydantic-settings==2.1.0
+email-validator==2.1.0
+
+# CORS & Middleware
+python-multipart==0.0.6
+
+# Scraping & Browser Automation
+selenium==4.16.0
+webdriver-manager==4.0.1
+fuzzywuzzy==0.18.0
+python-Levenshtein==0.23.0
+
+# Testing (for later)
+pytest==7.4.4
+pytest-asyncio==0.23.3
+httpx==0.26.0
