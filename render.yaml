@@ -1,0 +1,15 @@
+services:
+  # Backend API
+  - type: web
+    name: local-seo-backend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: https://local-seo-frontend.vercel.app,http://localhost:3000,http://localhost:5173
