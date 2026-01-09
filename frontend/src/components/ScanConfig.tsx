@@ -35,7 +35,7 @@ export default function ScanConfig({
 }: ScanConfigProps) {
   const [gridSize, setGridSize] = useState(5)
   const [radiusMiles, setRadiusMiles] = useState(initialRadiusMiles)
-  const [searchQuery, setSearchQuery] = useState(initialSearchQuery)
+  const [searchQuery] = useState(initialSearchQuery)
   const [businessName, setBusinessName] = useState('')
   const [centerLat, setCenterLat] = useState(37.5665)
   const [centerLng, setCenterLng] = useState(126.9780)

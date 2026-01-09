@@ -24,7 +24,7 @@ export default function ScanProgress({
   // 폴링 방식으로 스캔 상태 확인
   useEffect(() => {
     let isMounted = true
-    let pollInterval: NodeJS.Timeout
+    let pollInterval: number
 
     const fetchScanProgress = async () => {
       try {

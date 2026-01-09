@@ -86,7 +86,7 @@ export interface ApiResponse<T> {
 }
 
 export interface ScanCreateResponse {
-  snapshot_id: string;
+  scan_id: string;
   business_id: string;
   message: string;
   status: string;
