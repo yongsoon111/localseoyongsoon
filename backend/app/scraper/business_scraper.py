@@ -2,6 +2,7 @@
 Google Maps 비즈니스 정보 스크래핑
 """
 import time
+import urllib.parse
 from typing import Dict, Optional
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -41,6 +42,9 @@ def scrape_business_info(driver: webdriver.Chrome, google_maps_url: str) -> Dict
     }
 
     try:
+        # 먼저 입력 URL에서 이름 추출 시도 (가장 빠르고 정확)
+        result["name"] = _extract_name_from_url(google_maps_url)
+
         # Google Maps 페이지 방문
         driver.get(google_maps_url)
 
@@ -51,8 +55,9 @@ def scrape_business_info(driver: webdriver.Chrome, google_maps_url: str) -> Dict
 
         time.sleep(3)  # 추가 로딩 대기
 
-        # 비즈니스 이름
-        result["name"] = _extract_business_name(driver)
+        # 비즈니스 이름 (URL에서 추출 실패 시)
+        if not result["name"]:
+            result["name"] = _extract_business_name(driver)
 
         # 카테고리
         result["category"] = _extract_category(driver)
@@ -80,6 +85,22 @@ def scrape_business_info(driver: webdriver.Chrome, google_maps_url: str) -> Dict
         print(f"[SCRAPER ERROR] Failed to scrape business info: {str(e)}")
 
     return result
+
+
+def _extract_name_from_url(url: str) -> Optional[str]:
+    """입력 URL에서 직접 비즈니스 이름 추출"""
+    try:
+        if '/place/' in url:
+            # URL에서 /place/ 이후 부분 추출
+            place_part = url.split('/place/')[1].split('/')[0]
+            # URL 디코딩
+            name = urllib.parse.unquote(place_part).replace('+', ' ')
+            if name and len(name) > 2:
+                print(f"[SCRAPER] Extracted name from URL: {name}")
+                return name
+    except Exception as e:
+        print(f"[SCRAPER] Failed to extract name from URL: {e}")
+    return None
 
 
 def _extract_business_name(driver: webdriver.Chrome) -> Optional[str]:
