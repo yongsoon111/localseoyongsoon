@@ -44,12 +44,12 @@ def scrape_business_info(driver: webdriver.Chrome, google_maps_url: str) -> Dict
         # Google Maps 페이지 방문
         driver.get(google_maps_url)
 
-        # 페이지 로딩 대기
-        WebDriverWait(driver, 10).until(
+        # 페이지 로딩 대기 (Render 환경에서는 느릴 수 있음)
+        WebDriverWait(driver, 30).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "h1"))
         )
 
-        time.sleep(2)  # 추가 로딩 대기
+        time.sleep(3)  # 추가 로딩 대기
 
         # 비즈니스 이름
         result["name"] = _extract_business_name(driver)

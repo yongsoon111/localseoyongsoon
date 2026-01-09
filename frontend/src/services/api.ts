@@ -51,6 +51,8 @@ export const businessApi = {
   scrape: async (googleMapsUrl: string) => {
     const response = await apiClient.post('/api/business/scrape', {
       google_maps_url: googleMapsUrl
+    }, {
+      timeout: 90000 // 90 seconds for scraping (Chrome startup can be slow)
     });
     return response.data;
   },
@@ -59,7 +61,9 @@ export const businessApi = {
 // Scan API functions
 export const scanApi = {
   create: async (config: ScanConfig): Promise<ScanCreateResponse> => {
-    const response = await apiClient.post('/api/scan', config);
+    const response = await apiClient.post('/api/scan', config, {
+      timeout: 90000 // 90 seconds for scan creation (includes scraping)
+    });
     return response.data;
   },
 
