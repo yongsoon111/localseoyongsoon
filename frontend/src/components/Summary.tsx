@@ -16,30 +16,32 @@ export default function Summary({ result, onNewScan }: SummaryProps) {
     })
   }
 
+  const summary = (result as any).summary || result
+
   const stats = [
     {
       label: '평균 순위',
-      value: result.average_rank?.toFixed(1) || 'N/A',
+      value: summary.average_rank?.toFixed(1) || 'N/A',
       color: 'text-blue-600'
     },
     {
       label: '최고 순위',
-      value: result.best_rank?.toString() || 'N/A',
+      value: summary.best_rank?.toString() || 'N/A',
       color: 'text-green-600'
     },
     {
       label: '최저 순위',
-      value: result.worst_rank?.toString() || 'N/A',
+      value: summary.worst_rank?.toString() || 'N/A',
       color: 'text-red-600'
     },
     {
       label: '발견됨',
-      value: `${result.found_count}개`,
+      value: `${summary.found_count}개`,
       color: 'text-gray-700'
     },
     {
       label: '미발견',
-      value: `${result.not_found_count}개`,
+      value: `${summary.not_found_count}개`,
       color: 'text-gray-500'
     }
   ]

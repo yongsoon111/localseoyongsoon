@@ -7,9 +7,9 @@ python-dotenv==1.0.0
 supabase>=2.5.0
 
 # Pydantic & Validation
-pydantic==2.5.3
-pydantic-settings==2.1.0
-email-validator==2.1.0
+pydantic>=2.10.0
+pydantic-settings>=2.1.0
+email-validator>=2.2.0
 
 # CORS & Middleware
 python-multipart==0.0.6
@@ -17,10 +17,10 @@ python-multipart==0.0.6
 # Scraping & Browser Automation
 selenium==4.16.0
 webdriver-manager==4.0.1
-fuzzywuzzy==0.18.0
-python-Levenshtein==0.23.0
+rapidfuzz>=3.0.0
+requests>=2.31.0
 
 # Testing (for later)
 pytest==7.4.4
 pytest-asyncio==0.23.3
-httpx<0.26,>=0.24
+httpx>=0.27.0

@@ -37,17 +37,19 @@ def scan_business(scan_id: str) -> Dict[str, Any]:
         4. 각 포인트별 순위 측정
         5. DB 업데이트 (진행률, 결과)
     """
+    print(f"[SCAN] Starting scan for ID: {scan_id}")
     driver = None
 
     try:
         supabase = get_supabase()
+        print("[SCAN] Connected to Supabase")
 
         # Step 1: 스캔 정보 조회
         scan_data = _fetch_scan_data(supabase, scan_id)
 
-        # Step 2: URL 파싱
-        parsed_url = parse_google_maps_url(scan_data["google_maps_url"])
-        target_business = parsed_url["business_name"]
+        # Step 2: 타겟 비즈니스 이름
+        target_business = scan_data["business_name"]
+        print(f"[SCAN] Target business: {target_business}")
 
         # Step 3: 그리드 생성
         grid_points = generate_grid(
@@ -84,10 +86,19 @@ def scan_business(scan_id: str) -> Dict[str, Any]:
 
     except Exception as e:
         # 에러 발생 시 실패 처리
-        _update_scan_status(get_supabase(), scan_id, "failed")
+        import traceback
+        error_msg = f"Scan failed: {str(e)}"
+        print(f"[SCAN ERROR] {error_msg}")
+        traceback.print_exc()
+
+        try:
+            _update_scan_status(get_supabase(), scan_id, "failed")
+        except Exception as update_error:
+            print(f"[SCAN ERROR] Failed to update status: {update_error}")
+
         return {
             "status": "failed",
-            "message": f"Scan failed: {str(e)}",
+            "message": error_msg,
             "summary": None,
         }
 
@@ -99,7 +110,7 @@ def _fetch_scan_data(supabase: Any, scan_id: str) -> Dict[str, Any]:
     """DB에서 스캔 정보 조회"""
     result = (
         supabase.table("rank_snapshots")
-        .select("*, businesses(google_maps_url)")
+        .select("*, businesses(name, google_maps_url)")
         .eq("id", scan_id)
         .single()
         .execute()
@@ -113,6 +124,7 @@ def _fetch_scan_data(supabase: Any, scan_id: str) -> Dict[str, Any]:
         "grid_size": scan["grid_size"],
         "search_query": scan["search_query"],
         "google_maps_url": scan["businesses"]["google_maps_url"],
+        "business_name": scan["businesses"]["name"],
     }
 
 
@@ -206,7 +218,8 @@ def _save_grid_point(
 def _update_progress(
     supabase: Any,
     scan_id: str,
-    completed: int
+    completed: int,
+    total: int
 ) -> None:
     """진행률 업데이트"""
     supabase.table("rank_snapshots").update({

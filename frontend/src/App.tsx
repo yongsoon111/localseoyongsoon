@@ -5,22 +5,56 @@ import ScanProgress from './components/ScanProgress'
 import MapView from './components/MapView'
 import RankGrid from './components/RankGrid'
 import Summary from './components/Summary'
-import { scanApi } from './services/api'
+import { scanApi, businessApi } from './services/api'
 import type { ScanConfig as ScanConfigType, ScanResult } from './types'
 
 type AppStep = 'url' | 'config' | 'scanning' | 'results'
 
+interface ScrapedBusinessInfo {
+  name?: string
+  address?: string
+  phone?: string
+  website?: string
+  category?: string
+  rating?: string
+  review_count?: string
+  place_id?: string
+  lat?: string
+  lng?: string
+}
+
 function App() {
   const [step, setStep] = useState<AppStep>('url')
   const [googleMapsUrl, setGoogleMapsUrl] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [radiusMiles, setRadiusMiles] = useState(5)
   const [scanId, setScanId] = useState('')
   const [scanResult, setScanResult] = useState<ScanResult | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [gridSize, setGridSize] = useState(5)
+  const [scrapedInfo, setScrapedInfo] = useState<ScrapedBusinessInfo | null>(null)
 
-  const handleUrlSubmit = (url: string) => {
-    setGoogleMapsUrl(url)
-    setStep('config')
+  const handleUrlSubmit = async (data: { url: string; searchQuery: string; radiusMiles: number }) => {
+    setGoogleMapsUrl(data.url)
+    setSearchQuery(data.searchQuery)
+    setRadiusMiles(data.radiusMiles)
+    setIsLoading(true)
+
+    try {
+      // URL에서 비즈니스 정보 스크래핑
+      console.log('Scraping business info from URL...')
+      const info = await businessApi.scrape(data.url)
+      setScrapedInfo(info)
+      console.log('Scraped info:', info)
+      setStep('config')
+    } catch (error) {
+      console.error('Failed to scrape business info:', error)
+      // 스크래핑 실패해도 계속 진행 (수동 입력 가능)
+      setScrapedInfo(null)
+      setStep('config')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleConfigSubmit = async (config: ScanConfigType) => {
@@ -29,7 +63,8 @@ function App() {
 
     try {
       const response = await scanApi.create(config)
-      setScanId(response.snapshot_id)
+      console.log('Scan created:', response)
+      setScanId(response.scan_id)
       setStep('scanning')
     } catch (error) {
       console.error('Failed to create scan:', error)
@@ -53,13 +88,17 @@ function App() {
   const handleNewScan = () => {
     setStep('url')
     setGoogleMapsUrl('')
+    setSearchQuery('')
+    setRadiusMiles(5)
     setScanId('')
     setScanResult(null)
     setGridSize(5)
+    setScrapedInfo(null)
   }
 
   const handleBack = () => {
     setStep('url')
+    setScrapedInfo(null)
   }
 
   return (
@@ -82,6 +121,9 @@ function App() {
           {step === 'config' && (
             <ScanConfig
               googleMapsUrl={googleMapsUrl}
+              searchQuery={searchQuery}
+              radiusMiles={radiusMiles}
+              scrapedInfo={scrapedInfo}
               onSubmit={handleConfigSubmit}
               onBack={handleBack}
               isLoading={isLoading}

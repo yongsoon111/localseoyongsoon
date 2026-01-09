@@ -59,10 +59,23 @@ def _extract_business_name(url: str) -> Optional[str]:
 
 
 def _extract_coordinates(url: str) -> Optional[tuple[str, str]]:
-    """URL에서 위도/경도 추출 (@lat,lng,zoom 패턴)"""
+    """
+    URL에서 위도/경도 추출
+
+    지원 패턴:
+    1. @lat,lng,zoom 형식: @33.4852567,126.4897029,17z
+    2. 3d/4d 형식: 3d33.4852567!4d126.4897029
+    """
+    # 패턴 1: @lat,lng 형식
     match = re.search(r"@(-?\d+\.\d+),(-?\d+\.\d+)", url)
     if match:
         return (match.group(1), match.group(2))
+
+    # 패턴 2: 3d(latitude)!4d(longitude) 형식
+    match = re.search(r"3d(-?\d+\.\d+)!4d(-?\d+\.\d+)", url)
+    if match:
+        return (match.group(1), match.group(2))
+
     return None
 
 

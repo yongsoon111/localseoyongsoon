@@ -48,7 +48,14 @@ def create_driver(headless: bool = True) -> webdriver.Chrome:
     options.add_argument("--window-size=1920,1080")
 
     # ChromeDriver 자동 다운로드 및 설치
-    service = Service(ChromeDriverManager().install())
+    driver_path = ChromeDriverManager().install()
+    # Fix webdriver-manager bug: ensure we use the actual chromedriver binary
+    if 'THIRD_PARTY_NOTICES' in driver_path:
+        import os
+        driver_dir = os.path.dirname(driver_path)
+        driver_path = os.path.join(driver_dir, 'chromedriver')
+
+    service = Service(driver_path)
     driver = webdriver.Chrome(service=service, options=options)
 
     # WebDriver 속성 숨기기

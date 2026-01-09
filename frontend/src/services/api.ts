@@ -47,6 +47,13 @@ export const businessApi = {
     const response = await apiClient.get(`/api/business/${businessId}`);
     return response.data;
   },
+
+  scrape: async (googleMapsUrl: string) => {
+    const response = await apiClient.post('/api/business/scrape', {
+      google_maps_url: googleMapsUrl
+    });
+    return response.data;
+  },
 };
 
 // Scan API functions

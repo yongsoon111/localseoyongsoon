@@ -19,9 +19,12 @@ export interface BusinessCreate {
 // Scan configuration types
 export interface ScanConfig {
   google_maps_url: string;
+  business_name: string;
+  center_lat: number;
+  center_lng: number;
   radius_miles: number;
   grid_size: number;
-  search_query?: string;
+  search_query: string;
 }
 
 // Scan progress types

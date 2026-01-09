@@ -35,6 +35,11 @@ class ScanCreate(BaseModel):
         ...,
         description="Google Maps 비즈니스 URL"
     )
+    business_name: str = Field(
+        ...,
+        min_length=1,
+        description="비즈니스 이름"
+    )
     center_lat: float = Field(
         ...,
         ge=-90,
@@ -47,11 +52,11 @@ class ScanCreate(BaseModel):
         le=180,
         description="중심 좌표 경도"
     )
-    radius_miles: int = Field(
-        default=3,
-        ge=1,
+    radius_miles: float = Field(
+        default=5,
+        ge=0.1,
         le=10,
-        description="반경 (1-10 마일)"
+        description="반경 (0.1-10 마일)"
     )
     grid_size: int = Field(
         default=5,
@@ -128,7 +133,7 @@ class ScanResults(BaseModel):
     search_query: str
     center_lat: float
     center_lng: float
-    radius_miles: int
+    radius_miles: float
     grid_size: int
     summary: ScanResultsSummary
     grid_points: List[GridPointResponse]

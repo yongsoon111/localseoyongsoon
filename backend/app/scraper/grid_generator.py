@@ -37,15 +37,18 @@ def generate_grid(
     lat_delta = radius_miles / MILES_PER_DEGREE_LAT
     lng_delta = _miles_to_lng_delta(center_lat, radius_miles)
 
-    # 각 셀 간격 계산
-    step_lat = (2 * lat_delta) / (grid_size - 1) if grid_size > 1 else 0
-    step_lng = (2 * lng_delta) / (grid_size - 1) if grid_size > 1 else 0
+    # 각 셀 크기 계산 (전체를 grid_size로 나눔)
+    cell_size_lat = (2 * lat_delta) / grid_size
+    cell_size_lng = (2 * lng_delta) / grid_size
 
-    # 그리드 생성 (왼쪽 위부터 시작)
+    # 그리드 생성 (각 셀의 중심에 포인트 배치)
     for row in range(grid_size):
         for col in range(grid_size):
-            lat = center_lat + lat_delta - (row * step_lat)
-            lng = center_lng - lng_delta + (col * step_lng)
+            # 각 셀의 중심 좌표 계산
+            # 최북단에서 시작해서 남쪽으로 이동
+            lat = center_lat + lat_delta - (row + 0.5) * cell_size_lat
+            # 최서단에서 시작해서 동쪽으로 이동
+            lng = center_lng - lng_delta + (col + 0.5) * cell_size_lng
 
             grid_points.append({
                 "lat": round(lat, 6),
