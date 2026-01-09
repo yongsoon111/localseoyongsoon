@@ -5,7 +5,7 @@ python-dotenv==1.0.0
 
 # Supabase
 supabase==2.3.4
-postgrest-py==0.13.2
+postgrest-py==0.10.6
 
 # Pydantic & Validation
 pydantic==2.5.3
