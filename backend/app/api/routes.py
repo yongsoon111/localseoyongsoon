@@ -17,7 +17,7 @@ from app.schemas import (
     GridPointResponse
 )
 from app.services import scan_business
-from app.scraper import parse_google_maps_url, scrape_business_info, create_driver, close_driver, geocode_with_retry
+from app.scraper import parse_google_maps_url
 
 router = APIRouter()
 
@@ -49,35 +49,26 @@ async def scrape_business(request: dict) -> dict:
             detail="google_maps_url is required"
         )
 
-    driver = None
     try:
-        print(f"[API] Scraping business info from: {google_maps_url}")
-        driver = create_driver(headless=True)
-        scraped_info = scrape_business_info(driver, google_maps_url)
+        print(f"[API] Parsing business info from URL: {google_maps_url}")
 
-        # 1순위: 주소를 geocoding하여 정확한 좌표 획득
-        lat, lng = None, None
-        if scraped_info.get("address"):
-            print(f"[API] Geocoding address: {scraped_info['address']}")
-            coords = geocode_with_retry(scraped_info["address"])
-            if coords:
-                lat, lng = coords
-                print(f"[API] Geocoded coordinates: ({lat}, {lng})")
+        # URL 파싱으로 모든 정보 추출 (빠르고 정확)
+        parsed_url = parse_google_maps_url(google_maps_url)
 
-        # 2순위: Geocoding 실패 시 URL에서 좌표 추출
-        if not lat or not lng:
-            print("[API] Geocoding failed, using URL coordinates")
-            parsed_url = parse_google_maps_url(google_maps_url)
-            if parsed_url.get("lat") and parsed_url.get("lng"):
-                lat = parsed_url["lat"]
-                lng = parsed_url["lng"]
+        scraped_info = {
+            "name": parsed_url.get("business_name"),
+            "place_id": parsed_url.get("place_id"),
+            "lat": parsed_url.get("lat"),
+            "lng": parsed_url.get("lng"),
+            "address": None,  # URL에는 없음
+            "phone": None,
+            "website": None,
+            "category": None,
+            "rating": None,
+            "review_count": None,
+        }
 
-        # 좌표 저장
-        if lat and lng:
-            scraped_info["lat"] = str(lat)
-            scraped_info["lng"] = str(lng)
-
-        print(f"[API] Successfully scraped: {scraped_info.get('name')} at ({lat}, {lng})")
+        print(f"[API] Successfully parsed: {scraped_info.get('name')} at ({scraped_info.get('lat')}, {scraped_info.get('lng')})")
         return scraped_info
 
     except Exception as e:
@@ -85,11 +76,8 @@ async def scrape_business(request: dict) -> dict:
         traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to scrape business info: {str(e)}"
+            detail=f"Failed to parse business info: {str(e)}"
         )
-    finally:
-        if driver:
-            close_driver(driver)
 
 
 @router.post("/scan", response_model=ScanResponse, status_code=status.HTTP_201_CREATED)
@@ -118,33 +106,28 @@ async def create_scan(
             business = existing_business.data[0]
             print(f"[API] Existing business found: {business['name']}")
         else:
-            # Step 2: 새 비즈니스 - 실제 Google Maps 페이지 스크래핑
-            print(f"[API] New business. Scraping from URL: {scan_data.google_maps_url}")
-            driver = None
-            try:
-                driver = create_driver(headless=True)
-                scraped_info = scrape_business_info(driver, scan_data.google_maps_url)
+            # Step 2: 새 비즈니스 - URL 파싱으로 빠르게 추출
+            print(f"[API] New business. Parsing from URL: {scan_data.google_maps_url}")
 
-                # 스크래핑된 정보 우선, 없으면 사용자 입력, 최종적으로 "Unknown"
-                business_name = scraped_info.get("name") or scan_data.business_name or "Unknown Business"
+            # URL 파싱
+            parsed_url = parse_google_maps_url(scan_data.google_maps_url)
 
-                print(f"[API] Scraped business name: {business_name}")
+            # 파싱된 정보 우선, 없으면 사용자 입력, 최종적으로 "Unknown"
+            business_name = parsed_url.get("business_name") or scan_data.business_name or "Unknown Business"
 
-                # 새 비즈니스 생성 (스크래핑된 전체 정보 저장)
-                new_business = supabase.table("businesses").insert({
-                    "name": business_name,
-                    "google_maps_url": scan_data.google_maps_url,
-                    "place_id": scraped_info.get("place_id"),
-                    "address": scraped_info.get("address"),
-                    "phone": scraped_info.get("phone"),
-                    "website": scraped_info.get("website"),
-                    "category": scraped_info.get("category"),
-                }).execute()
-                business = new_business.data[0]
+            print(f"[API] Parsed business name: {business_name}")
 
-            finally:
-                if driver:
-                    close_driver(driver)
+            # 새 비즈니스 생성
+            new_business = supabase.table("businesses").insert({
+                "name": business_name,
+                "google_maps_url": scan_data.google_maps_url,
+                "place_id": parsed_url.get("place_id"),
+                "address": None,  # URL에는 없음
+                "phone": None,
+                "website": None,
+                "category": None,
+            }).execute()
+            business = new_business.data[0]
 
         # Step 3: RankSnapshot 생성
         total_points = scan_data.grid_size * scan_data.grid_size
