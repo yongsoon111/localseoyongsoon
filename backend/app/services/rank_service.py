@@ -3,6 +3,8 @@
 """
 from datetime import datetime, timezone
 from typing import Dict, Any
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 
 from app.database import get_supabase
 from app.scraper import (
@@ -62,12 +64,8 @@ def scan_business(scan_id: str) -> Dict[str, Any]:
         # Step 4: 스캔 시작 업데이트
         _update_scan_status(supabase, scan_id, "in_progress")
 
-        # Step 5: WebDriver 생성
-        driver = create_driver(headless=True)
-
-        # Step 6: 각 그리드 포인트 순위 측정
-        results = _measure_ranks(
-            driver=driver,
+        # Step 5: 각 그리드 포인트 순위 측정 (병렬 처리)
+        results = _measure_ranks_parallel(
             supabase=supabase,
             scan_id=scan_id,
             target_business=target_business,
@@ -75,7 +73,7 @@ def scan_business(scan_id: str) -> Dict[str, Any]:
             grid_points=grid_points,
         )
 
-        # Step 7: 스캔 완료 및 통계 업데이트
+        # Step 6: 스캔 완료 및 통계 업데이트
         summary = _finalize_scan(supabase, scan_id, results)
 
         return {
@@ -101,9 +99,6 @@ def scan_business(scan_id: str) -> Dict[str, Any]:
             "message": error_msg,
             "summary": None,
         }
-
-    finally:
-        close_driver(driver)
 
 
 def _fetch_scan_data(supabase: Any, scan_id: str) -> Dict[str, Any]:
@@ -144,6 +139,111 @@ def _update_scan_status(
     supabase.table("rank_snapshots").update(update_data).eq("id", scan_id).execute()
 
 
+def _measure_ranks_parallel(
+    supabase: Any,
+    scan_id: str,
+    target_business: str,
+    search_query: str,
+    grid_points: list,
+) -> list:
+    """각 그리드 포인트별 순위 측정 (병렬 처리)"""
+    results = []
+    total_points = len(grid_points)
+    completed_count = 0
+    lock = threading.Lock()
+
+    # Render Free Tier: 최대 4개 동시 실행 (메모리 고려)
+    # 유료 플랜에서는 8-10으로 증가 가능
+    MAX_WORKERS = 4
+
+    print(f"[SCAN] Starting parallel scan with {MAX_WORKERS} workers")
+
+    def process_point(idx_point):
+        """단일 포인트 처리 (독립 Chrome 사용)"""
+        idx, point = idx_point
+        driver = None
+        try:
+            # 각 워커가 자신의 Chrome 인스턴스 생성
+            driver = create_driver(headless=True)
+
+            # 검색 실행
+            success = search_google_maps(
+                driver=driver,
+                query=search_query,
+                lat=point["lat"],
+                lng=point["lng"],
+            )
+
+            if success:
+                # 비즈니스 이름 추출
+                business_names = extract_business_names(driver)
+
+                # 순위 찾기
+                rank_result = find_rank(target_business, business_names)
+
+                result = {
+                    "point": point,
+                    "rank": rank_result["rank"],
+                    "found": rank_result["rank"] is not None,
+                    "matched_name": rank_result["matched_name"],
+                }
+            else:
+                # 검색 실패
+                result = {
+                    "point": point,
+                    "rank": None,
+                    "found": False,
+                    "matched_name": None,
+                }
+
+            # GridPoint DB 저장
+            _save_grid_point(supabase, scan_id, point, result)
+
+            # 진행률 업데이트 (thread-safe)
+            nonlocal completed_count
+            with lock:
+                completed_count += 1
+                _update_progress(supabase, scan_id, completed_count, total_points)
+
+            return (idx, result)
+
+        except Exception as e:
+            print(f"[SCAN] Error processing point {idx}: {e}")
+            result = {
+                "point": point,
+                "rank": None,
+                "found": False,
+                "matched_name": None,
+            }
+            return (idx, result)
+
+        finally:
+            if driver:
+                close_driver(driver)
+
+    # 병렬 실행
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        # 각 포인트를 (인덱스, 포인트) 튜플로 변환
+        indexed_points = list(enumerate(grid_points, start=1))
+
+        # 모든 작업 제출
+        future_to_point = {
+            executor.submit(process_point, ip): ip for ip in indexed_points
+        }
+
+        # 완료되는 대로 결과 수집
+        temp_results = {}
+        for future in as_completed(future_to_point):
+            idx, result = future.result()
+            temp_results[idx] = result
+
+    # 순서대로 정렬
+    results = [temp_results[i] for i in range(1, total_points + 1)]
+
+    print(f"[SCAN] Parallel scan completed: {len(results)} points processed")
+    return results
+
+
 def _measure_ranks(
     driver: Any,
     supabase: Any,
@@ -152,7 +252,7 @@ def _measure_ranks(
     search_query: str,
     grid_points: list,
 ) -> list:
-    """각 그리드 포인트별 순위 측정"""
+    """각 그리드 포인트별 순위 측정 (레거시, 순차 처리)"""
     results = []
     total_points = len(grid_points)
 
