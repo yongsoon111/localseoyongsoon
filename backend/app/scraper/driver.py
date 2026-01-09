@@ -1,12 +1,13 @@
 """
 Selenium WebDriver 설정 및 관리
 """
+import os
 import random
+import shutil
 from typing import Optional
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
 
 
 USER_AGENTS = [
@@ -47,15 +48,27 @@ def create_driver(headless: bool = True) -> webdriver.Chrome:
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1920,1080")
 
-    # ChromeDriver 자동 다운로드 및 설치
-    driver_path = ChromeDriverManager().install()
-    # Fix webdriver-manager bug: ensure we use the actual chromedriver binary
-    if 'THIRD_PARTY_NOTICES' in driver_path:
-        import os
-        driver_dir = os.path.dirname(driver_path)
-        driver_path = os.path.join(driver_dir, 'chromedriver')
+    # ChromeDriver 경로 설정
+    # Production 환경 (Render 등): 시스템에 설치된 chromedriver 사용
+    driver_path = shutil.which('chromedriver')
 
-    service = Service(driver_path)
+    if driver_path:
+        # System chromedriver found (production)
+        service = Service(driver_path)
+    else:
+        # Development: use webdriver-manager
+        try:
+            from webdriver_manager.chrome import ChromeDriverManager
+            driver_path = ChromeDriverManager().install()
+            # Fix webdriver-manager bug: ensure we use the actual chromedriver binary
+            if 'THIRD_PARTY_NOTICES' in driver_path:
+                driver_dir = os.path.dirname(driver_path)
+                driver_path = os.path.join(driver_dir, 'chromedriver')
+            service = Service(driver_path)
+        except ImportError:
+            # webdriver-manager not available, use default
+            service = Service()
+
     driver = webdriver.Chrome(service=service, options=options)
 
     # WebDriver 속성 숨기기
