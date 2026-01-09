@@ -23,10 +23,11 @@ RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d. -f1) \
     && echo "ChromeDriver version: $CHROMEDRIVER_VERSION" \
     && wget -q "https://storage.googleapis.com/chrome-for-testing-public/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip" -O /tmp/chromedriver.zip \
     && unzip /tmp/chromedriver.zip -d /tmp/ \
-    && mv /tmp/chromedriver-linux64/chromedriver /usr/local/bin/ \
-    && chmod +x /usr/local/bin/chromedriver \
+    && mv /tmp/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver \
+    && chmod 755 /usr/local/bin/chromedriver \
     && rm -rf /tmp/chromedriver.zip /tmp/chromedriver-linux64 \
-    && chromedriver --version
+    && ls -la /usr/local/bin/chromedriver \
+    && /usr/local/bin/chromedriver --version
 
 # Copy requirements
 COPY requirements.txt .

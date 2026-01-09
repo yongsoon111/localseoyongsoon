@@ -50,13 +50,21 @@ def create_driver(headless: bool = True) -> webdriver.Chrome:
 
     # ChromeDriver 경로 설정
     # Production 환경 (Render 등): 시스템에 설치된 chromedriver 사용
-    driver_path = shutil.which('chromedriver')
+    driver_path = None
 
-    if driver_path:
-        # System chromedriver found (production)
-        service = Service(driver_path)
-    else:
-        # Development: use webdriver-manager
+    # 1순위: /usr/local/bin/chromedriver (Dockerfile에서 설치한 위치)
+    if os.path.exists('/usr/local/bin/chromedriver'):
+        driver_path = '/usr/local/bin/chromedriver'
+        print(f"[DRIVER] Using system chromedriver: {driver_path}")
+
+    # 2순위: PATH에서 찾기
+    if not driver_path:
+        driver_path = shutil.which('chromedriver')
+        if driver_path:
+            print(f"[DRIVER] Found chromedriver in PATH: {driver_path}")
+
+    # 3순위: Development - webdriver-manager
+    if not driver_path:
         try:
             from webdriver_manager.chrome import ChromeDriverManager
             driver_path = ChromeDriverManager().install()
@@ -64,10 +72,15 @@ def create_driver(headless: bool = True) -> webdriver.Chrome:
             if 'THIRD_PARTY_NOTICES' in driver_path:
                 driver_dir = os.path.dirname(driver_path)
                 driver_path = os.path.join(driver_dir, 'chromedriver')
-            service = Service(driver_path)
+            print(f"[DRIVER] Using webdriver-manager chromedriver: {driver_path}")
         except ImportError:
-            # webdriver-manager not available, use default
-            service = Service()
+            print("[DRIVER] webdriver-manager not available, using default service")
+            driver_path = None
+
+    if driver_path:
+        service = Service(driver_path)
+    else:
+        service = Service()
 
     driver = webdriver.Chrome(service=service, options=options)
 

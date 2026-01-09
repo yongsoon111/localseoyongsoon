@@ -85,16 +85,38 @@ def scrape_business_info(driver: webdriver.Chrome, google_maps_url: str) -> Dict
 def _extract_business_name(driver: webdriver.Chrome) -> Optional[str]:
     """비즈니스 이름 추출"""
     try:
-        # h1 태그에서 비즈니스 이름 추출
-        name_element = driver.find_element(By.CSS_SELECTOR, "h1.DUwDvf")
-        return name_element.text.strip() if name_element else None
+        # 방법 1: URL에서 이름 추출 (가장 정확함)
+        current_url = driver.current_url
+        if '/place/' in current_url:
+            import urllib.parse
+            # URL에서 /place/ 이후 부분 추출
+            place_part = current_url.split('/place/')[1].split('/')[0]
+            # URL 디코딩
+            name = urllib.parse.unquote(place_part).replace('+', ' ')
+            if name and len(name) > 2:  # "GN" 같은 짧은 이름 제외
+                return name
     except:
-        try:
-            # 대체 셀렉터
-            name_element = driver.find_element(By.CSS_SELECTOR, "h1")
-            return name_element.text.strip() if name_element else None
-        except:
-            return None
+        pass
+
+    try:
+        # 방법 2: h1 태그에서 비즈니스 이름 추출
+        name_element = driver.find_element(By.CSS_SELECTOR, "h1.DUwDvf")
+        name = name_element.text.strip()
+        if name and len(name) > 2:
+            return name
+    except:
+        pass
+
+    try:
+        # 방법 3: 일반 h1 태그
+        name_element = driver.find_element(By.CSS_SELECTOR, "h1")
+        name = name_element.text.strip()
+        if name and len(name) > 2:
+            return name
+    except:
+        pass
+
+    return None
 
 
 def _extract_category(driver: webdriver.Chrome) -> Optional[str]:
