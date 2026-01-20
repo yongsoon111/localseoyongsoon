@@ -215,10 +215,10 @@ export function AIReportSection({
                 }`}>
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className={`border-b-2 text-[11px] font-black uppercase tracking-[0.1em] ${
+                      <tr className={`border-b-2 text-sm font-black uppercase tracking-[0.1em] ${
                         isDarkTheme
-                          ? 'bg-slate-800/50 border-slate-700 text-slate-400'
-                          : 'bg-slate-50 border-slate-100 text-slate-400'
+                          ? 'bg-slate-800/50 border-slate-700 text-slate-300'
+                          : 'bg-slate-50 border-slate-100 text-slate-700'
                       }`}>
                         <th className="px-8 py-5">기간</th>
                         <th className="px-8 py-5">리뷰 수</th>
@@ -226,8 +226,8 @@ export function AIReportSection({
                         <th className="px-8 py-5">응답률</th>
                       </tr>
                     </thead>
-                    <tbody className={`divide-y font-bold text-sm ${
-                      isDarkTheme ? 'divide-slate-700 text-slate-300' : 'divide-slate-100 text-slate-700'
+                    <tbody className={`divide-y font-black text-base ${
+                      isDarkTheme ? 'divide-slate-700 text-slate-200' : 'divide-slate-100 text-slate-900'
                     }`}>
                       {report.reviewTrend.map((trend, i) => (
                         <tr key={i}>
@@ -255,7 +255,7 @@ export function AIReportSection({
                   부정 리뷰 패턴 분석 ({report.negativePatterns.totalNegativeReviews}개 리뷰 기준)
                 </h2>
                 <div className="space-y-4 mb-10">
-                  <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">반복 불만 TOP 5</div>
+                  <div className="text-sm font-black text-slate-700 uppercase tracking-widest mb-4">반복 불만 TOP 5</div>
                   {report.negativePatterns.topComplaints.map((comp, i) => (
                     <div key={i} className={`p-6 rounded-2xl border relative group transition-all hover:shadow-lg ${
                       isDarkTheme
@@ -275,9 +275,9 @@ export function AIReportSection({
                           {comp.count}회 ({comp.percentage})
                         </span>
                       </div>
-                      <div className={`pl-11 border-l-2 ${isDarkTheme ? 'border-slate-700' : 'border-slate-200'}`}>
-                        <p className={`text-xs font-medium italic leading-relaxed ${
-                          isDarkTheme ? 'text-slate-400' : 'text-slate-500'
+                      <div className={`pl-11 border-l-2 ${isDarkTheme ? 'border-slate-700' : 'border-slate-300'}`}>
+                        <p className={`text-sm font-semibold italic leading-relaxed ${
+                          isDarkTheme ? 'text-slate-300' : 'text-slate-700'
                         }`}>
                           - &quot;{comp.quotes}&quot;
                         </p>
@@ -329,17 +329,17 @@ export function AIReportSection({
                     }`}>
                       <table className="w-full text-left border-collapse">
                         <thead>
-                          <tr className={`border-b-2 text-[10px] font-black uppercase tracking-[0.1em] ${
+                          <tr className={`border-b-2 text-sm font-black uppercase tracking-[0.1em] ${
                             isDarkTheme
-                              ? 'bg-slate-800/50 border-slate-700 text-slate-400'
-                              : 'bg-slate-50 border-slate-100 text-slate-400'
+                              ? 'bg-slate-800/50 border-slate-700 text-slate-300'
+                              : 'bg-slate-50 border-slate-100 text-slate-700'
                           }`}>
                             <th className="px-8 py-4 w-1/4">항목</th>
                             <th className="px-8 py-4 w-16 text-center">상태</th>
                             <th className="px-8 py-4">AI 진단 의견</th>
                           </tr>
                         </thead>
-                        <tbody className={`divide-y font-medium ${
+                        <tbody className={`divide-y font-bold ${
                           isDarkTheme ? 'divide-slate-700' : 'divide-slate-100'
                         }`}>
                           {section.items.map((item, i) => (
@@ -352,8 +352,8 @@ export function AIReportSection({
                                 {item.label}
                               </td>
                               <td className="px-8 py-5 text-center">{getStatusBadge(item.status)}</td>
-                              <td className={`px-8 py-5 text-xs leading-relaxed font-semibold ${
-                                isDarkTheme ? 'text-slate-400' : 'text-slate-600'
+                              <td className={`px-8 py-5 text-sm leading-relaxed font-bold ${
+                                isDarkTheme ? 'text-slate-300' : 'text-slate-800'
                               }`}>
                                 {item.diagnosis}
                               </td>
