@@ -65,7 +65,7 @@ export function TeleportSearch({
     return '#EF4444';
   };
 
-  // 핀 마커를 Canvas에 그리는 함수
+  // 원형 마커를 Canvas에 그리는 함수
   const drawPinMarker = (
     ctx: CanvasRenderingContext2D,
     x: number,
@@ -73,41 +73,23 @@ export function TeleportSearch({
     label: string,
     color: string
   ) => {
-    const pinWidth = 40;
-    const pinHeight = 50;
-    const circleRadius = 14;
+    const circleRadius = 24;
 
-    // 핀 모양 그리기
+    // 색상 원 그리기
     ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.bezierCurveTo(
-      x - pinWidth / 2, y - pinHeight * 0.4,
-      x - pinWidth / 2, y - pinHeight * 0.8,
-      x, y - pinHeight
-    );
-    ctx.bezierCurveTo(
-      x + pinWidth / 2, y - pinHeight * 0.8,
-      x + pinWidth / 2, y - pinHeight * 0.4,
-      x, y
-    );
+    ctx.arc(x, y, circleRadius, 0, Math.PI * 2);
     ctx.fillStyle = color;
     ctx.fill();
     ctx.strokeStyle = 'white';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 4;
     ctx.stroke();
 
-    // 흰색 원 그리기
-    ctx.beginPath();
-    ctx.arc(x, y - pinHeight + circleRadius + 8, circleRadius, 0, Math.PI * 2);
-    ctx.fillStyle = 'white';
-    ctx.fill();
-
     // 텍스트 그리기
-    ctx.fillStyle = color;
-    ctx.font = 'bold 14px Arial';
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 18px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(label, x, y - pinHeight + circleRadius + 8);
+    ctx.fillText(label, x, y);
   };
 
   // 위경도를 픽셀 좌표로 변환
