@@ -183,7 +183,7 @@ export interface ReviewReplyParams {
 // GBP 게시물 생성
 export async function generateGBPPost(params: GBPPostParams): Promise<string> {
   const ai = getGenAI();
-  const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const model = ai.getGenerativeModel({ model: 'gemini-3-flash-preview' });
 
   const { businessName, category, keywords = [], tone = 'professional', postType = 'update' } = params;
 
@@ -225,7 +225,7 @@ export async function generateGBPPost(params: GBPPostParams): Promise<string> {
 // 리뷰 답변 생성
 export async function generateReviewReply(params: ReviewReplyParams): Promise<string> {
   const ai = getGenAI();
-  const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const model = ai.getGenerativeModel({ model: 'gemini-3-flash-preview' });
 
   const { reviewText, rating, businessName } = params;
 
@@ -251,7 +251,7 @@ export async function generateReviewReply(params: ReviewReplyParams): Promise<st
 // 리뷰 요약 생성
 export async function generateReviewSummary(reviews: { rating: number; text: string }[]): Promise<string> {
   const ai = getGenAI();
-  const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const model = ai.getGenerativeModel({ model: 'gemini-3-flash-preview' });
 
   const reviewsText = reviews.map((r, i) => `${i + 1}. [${r.rating}점] ${r.text}`).join('\n');
 
@@ -334,8 +334,8 @@ export async function generateDiagnosticReport(
   }>;
 }> {
   const ai = getGenAI();
-  // gemini-1.5-flash 무료 할당량 초과 시 gemini-1.5-flash 사용
-  const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  // gemini-3-flash-preview 무료 할당량 초과 시 gemini-3-flash-preview 사용
+  const model = ai.getGenerativeModel({ model: 'gemini-3-flash-preview' });
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -480,7 +480,7 @@ Objective: 구조적 결함과 매출 손실 요인을 명확히 인지하게 �
 
 export async function generateGBPAuditReport(data: GBPAuditData): Promise<string> {
   const ai = getGenAI();
-  const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const model = ai.getGenerativeModel({ model: 'gemini-3-flash-preview' });
 
   const today = new Date().toISOString().split('T')[0];
 
