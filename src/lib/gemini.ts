@@ -334,8 +334,13 @@ export async function generateDiagnosticReport(
   }>;
 }> {
   const ai = getGenAI();
-  // gemini-3-flash-preview 무료 할당량 초과 시 gemini-3-flash-preview 사용
-  const model = ai.getGenerativeModel({ model: 'gemini-3-flash-preview' });
+  const model = ai.getGenerativeModel({
+    model: 'gemini-2.0-flash',
+    generationConfig: {
+      maxOutputTokens: 8192,
+      temperature: 0.7,
+    },
+  });
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -358,7 +363,7 @@ Objective: 구조적 결함과 매출 손실 요인을 명확히 인지하게 �
 
 [분석 데이터셋]
 1. GMB 데이터 (체크리스트): ${JSON.stringify(checklist.map(c => ({ cat: c.category, item: c.item, val: c.currentValue, status: c.status })))}
-2. 리뷰 데이터 (평판): ${JSON.stringify(reviews.slice(0, 50).map(r => ({ r: r.rating, c: r.text?.slice(0, 200), d: r.date, hasReply: !!r.ownerResponse })))}
+2. 리뷰 데이터 (평판): ${JSON.stringify(reviews.slice(0, 20).map(r => ({ r: r.rating, c: r.text?.slice(0, 100), d: r.date, hasReply: !!r.ownerResponse })))}
 3. 순위 데이터: ${ranking}
 4. 오늘 날짜: ${today}
 
