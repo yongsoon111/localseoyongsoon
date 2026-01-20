@@ -592,6 +592,345 @@ export async function fetchGoogleBusinessInfo(params: {
   return result;
 }
 
+// GMB Updates 관련 타입
+export interface GMBUpdateItem {
+  rank_group: number;
+  rank_absolute: number;
+  author: string;
+  post_text: string;
+  snippet: string | null;
+  post_date: string;  // "mm/dd/yyyy hh:mm:ss" 형식
+  timestamp: string;  // UTC 형식
+  images_url: string[] | null;
+  url: string;
+  links: { type: string; title: string; url: string }[] | null;
+}
+
+export interface GMBUpdatesResult {
+  keyword: string;
+  cid: string;
+  check_url: string;
+  datetime: string;
+  items_count: number;
+  items: GMBUpdateItem[];
+}
+
+// Q&A 관련 타입
+export interface QAAnswerItem {
+  answer_id: string;
+  answer_text: string;
+  original_answer_text: string | null;
+  profile_name: string;
+  profile_url: string;
+  profile_image_url: string;
+  timestamp: string;
+  time_ago: string;
+}
+
+export interface QAQuestionItem {
+  type: string;
+  question_id: string;
+  question_text: string;
+  original_question_text: string | null;
+  profile_name: string;
+  profile_url: string;
+  profile_image_url: string;
+  timestamp: string;
+  time_ago: string;
+  items?: QAAnswerItem[];  // 답변 배열
+}
+
+export interface QAResult {
+  keyword: string;
+  cid: string;
+  check_url: string;
+  datetime: string;
+  items_count: number;
+  items: QAQuestionItem[];  // 답변이 있는 질문들
+  items_without_answers: QAQuestionItem[];  // 답변이 없는 질문들
+}
+
+/**
+ * GMB Updates (게시물/소식) 수집 - Task POST
+ */
+export async function postGMBUpdatesTask(params: {
+  keyword: string;
+  locationName?: string;
+  languageCode?: string;
+  depth?: number;
+}): Promise<string> {
+  const {
+    keyword,
+    locationName = 'South Korea',
+    languageCode = 'ko',
+    depth = 20,
+  } = params;
+
+  const taskData: Record<string, unknown>[] = [{
+    keyword,
+    location_name: locationName,
+    language_code: languageCode,
+    depth,
+  }];
+
+  console.log('[DataForSEO] GMB Updates task_post 요청:', JSON.stringify(taskData));
+
+  const response = await fetch('https://api.dataforseo.com/v3/business_data/google/my_business_updates/task_post', {
+    method: 'POST',
+    headers: {
+      'Authorization': getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(taskData),
+  });
+
+  const data: DataForSEOResponse<unknown> = await response.json();
+
+  console.log('[DataForSEO] GMB Updates task_post 응답:', JSON.stringify({
+    status_code: data.status_code,
+    status_message: data.status_message,
+    task_id: data.tasks?.[0]?.id,
+    task_status_code: data.tasks?.[0]?.status_code,
+  }));
+
+  if (data.status_code !== 20000) {
+    throw new Error(`DataForSEO Error: ${data.status_message}`);
+  }
+
+  const task = data.tasks[0];
+  if (task?.status_code && task.status_code !== 20100 && task.status_code !== 20000) {
+    throw new Error(`태스크 생성 실패: ${task.status_message}`);
+  }
+
+  const taskId = task?.id;
+  if (!taskId) {
+    throw new Error('Task ID를 받지 못했습니다');
+  }
+
+  return taskId;
+}
+
+/**
+ * GMB Updates 결과 조회 - Task GET
+ */
+export async function getGMBUpdatesResult(taskId: string): Promise<GMBUpdatesResult | null> {
+  const response = await fetch(`https://api.dataforseo.com/v3/business_data/google/my_business_updates/task_get/${taskId}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': getAuthHeader(),
+    },
+  });
+
+  const data: DataForSEOResponse<GMBUpdatesResult> = await response.json();
+
+  console.log(`[DataForSEO] GMB Updates task_get 응답:`, JSON.stringify({
+    status_code: data.status_code,
+    task_status_code: data.tasks?.[0]?.status_code,
+    result_count: data.tasks?.[0]?.result_count,
+  }));
+
+  if (data.status_code !== 20000) {
+    throw new Error(`DataForSEO Error: ${data.status_message}`);
+  }
+
+  const task = data.tasks[0];
+
+  // 아직 처리 중
+  if (task.status_code === 20100 || task.status_code === 40601 || task.status_code === 40602) {
+    return null;
+  }
+
+  if (task.status_code !== 20000) {
+    // 결과 없음은 빈 결과로 처리
+    if (task.status_code === 40102) {
+      return {
+        keyword: '',
+        cid: '',
+        check_url: '',
+        datetime: new Date().toISOString(),
+        items_count: 0,
+        items: [],
+      };
+    }
+    throw new Error(`Task Error: ${task.status_message}`);
+  }
+
+  return task.result?.[0] || null;
+}
+
+/**
+ * GMB Updates 수집 (폴링 방식)
+ */
+export async function fetchGMBUpdates(params: {
+  keyword: string;
+  locationName?: string;
+  languageCode?: string;
+  depth?: number;
+  maxWaitMs?: number;
+  pollIntervalMs?: number;
+}): Promise<GMBUpdatesResult> {
+  const { maxWaitMs = 60000, pollIntervalMs = 3000, ...taskParams } = params;
+
+  const taskId = await postGMBUpdatesTask(taskParams);
+  console.log(`[DataForSEO] GMB Updates 태스크 폴링 시작: ${taskId}`);
+
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < maxWaitMs) {
+    const result = await getGMBUpdatesResult(taskId);
+
+    if (result) {
+      console.log(`[DataForSEO] GMB Updates 수집 완료, items: ${result.items_count}`);
+      return result;
+    }
+
+    await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+  }
+
+  throw new Error('GMB Updates 조회 시간 초과');
+}
+
+/**
+ * Q&A (질문과 답변) 수집 - Task POST
+ */
+export async function postQATask(params: {
+  keyword: string;
+  locationName?: string;
+  languageCode?: string;
+  depth?: number;
+}): Promise<string> {
+  const {
+    keyword,
+    locationName = 'South Korea',
+    languageCode = 'ko',
+    depth = 20,
+  } = params;
+
+  const taskData: Record<string, unknown>[] = [{
+    keyword,
+    location_name: locationName,
+    language_code: languageCode,
+    depth,
+  }];
+
+  console.log('[DataForSEO] Q&A task_post 요청:', JSON.stringify(taskData));
+
+  const response = await fetch('https://api.dataforseo.com/v3/business_data/google/questions_and_answers/task_post', {
+    method: 'POST',
+    headers: {
+      'Authorization': getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(taskData),
+  });
+
+  const data: DataForSEOResponse<unknown> = await response.json();
+
+  console.log('[DataForSEO] Q&A task_post 응답:', JSON.stringify({
+    status_code: data.status_code,
+    status_message: data.status_message,
+    task_id: data.tasks?.[0]?.id,
+    task_status_code: data.tasks?.[0]?.status_code,
+  }));
+
+  if (data.status_code !== 20000) {
+    throw new Error(`DataForSEO Error: ${data.status_message}`);
+  }
+
+  const task = data.tasks[0];
+  if (task?.status_code && task.status_code !== 20100 && task.status_code !== 20000) {
+    throw new Error(`태스크 생성 실패: ${task.status_message}`);
+  }
+
+  const taskId = task?.id;
+  if (!taskId) {
+    throw new Error('Task ID를 받지 못했습니다');
+  }
+
+  return taskId;
+}
+
+/**
+ * Q&A 결과 조회 - Task GET
+ */
+export async function getQAResult(taskId: string): Promise<QAResult | null> {
+  const response = await fetch(`https://api.dataforseo.com/v3/business_data/google/questions_and_answers/task_get/${taskId}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': getAuthHeader(),
+    },
+  });
+
+  const data: DataForSEOResponse<QAResult> = await response.json();
+
+  console.log(`[DataForSEO] Q&A task_get 응답:`, JSON.stringify({
+    status_code: data.status_code,
+    task_status_code: data.tasks?.[0]?.status_code,
+    result_count: data.tasks?.[0]?.result_count,
+  }));
+
+  if (data.status_code !== 20000) {
+    throw new Error(`DataForSEO Error: ${data.status_message}`);
+  }
+
+  const task = data.tasks[0];
+
+  // 아직 처리 중
+  if (task.status_code === 20100 || task.status_code === 40601 || task.status_code === 40602) {
+    return null;
+  }
+
+  if (task.status_code !== 20000) {
+    // 결과 없음은 빈 결과로 처리
+    if (task.status_code === 40102) {
+      return {
+        keyword: '',
+        cid: '',
+        check_url: '',
+        datetime: new Date().toISOString(),
+        items_count: 0,
+        items: [],
+        items_without_answers: [],
+      };
+    }
+    throw new Error(`Task Error: ${task.status_message}`);
+  }
+
+  return task.result?.[0] || null;
+}
+
+/**
+ * Q&A 수집 (폴링 방식)
+ */
+export async function fetchQA(params: {
+  keyword: string;
+  locationName?: string;
+  languageCode?: string;
+  depth?: number;
+  maxWaitMs?: number;
+  pollIntervalMs?: number;
+}): Promise<QAResult> {
+  const { maxWaitMs = 60000, pollIntervalMs = 3000, ...taskParams } = params;
+
+  const taskId = await postQATask(taskParams);
+  console.log(`[DataForSEO] Q&A 태스크 폴링 시작: ${taskId}`);
+
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < maxWaitMs) {
+    const result = await getQAResult(taskId);
+
+    if (result) {
+      console.log(`[DataForSEO] Q&A 수집 완료, items: ${result.items_count}`);
+      return result;
+    }
+
+    await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+  }
+
+  throw new Error('Q&A 조회 시간 초과');
+}
+
 // 순위 체크 결과 타입
 export interface RankingResult {
   lat: number;
