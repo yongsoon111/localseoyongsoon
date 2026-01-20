@@ -335,9 +335,9 @@ export async function generateDiagnosticReport(
 }> {
   const ai = getGenAI();
   const model = ai.getGenerativeModel({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-3-flash-preview',
     generationConfig: {
-      maxOutputTokens: 8192,
+      maxOutputTokens: 32768,
       temperature: 0.7,
     },
   });
