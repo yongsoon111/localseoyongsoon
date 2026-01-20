@@ -641,15 +641,26 @@ export const useAuditStore = create<AuditState>()(
       },
 
       loadAudit: (auditData, score) => {
-        const { business, reviewData } = auditData;
+        const state = get();
+        const { business, reviewData, teleportResults, teleportKeyword, scrapedData } = auditData;
+
+        // DB에서 로드한 데이터가 없으면 기존 캐시/상태 유지 (데이터 손실 방지)
         set({
-          business: business || null,
-          basicScore: score || 0,
-          reviewData: reviewData || null,
-          placeId: business?.placeId || null,
+          business: business || state.business || null,
+          basicScore: score || state.basicScore || 0,
+          reviewData: reviewData || state.reviewData || null,
+          teleportResults: teleportResults || state.teleportResults || [],
+          teleportKeyword: teleportKeyword || state.teleportKeyword || '',
+          scrapedData: scrapedData || state.scrapedData || null,
+          placeId: business?.placeId || state.placeId || null,
           loading: false,
           reviewLoading: false,
           error: null,
+        });
+
+        console.log('[AuditStore] loadAudit 완료:', {
+          hasReviewData: !!(reviewData || state.reviewData),
+          hasTeleportResults: !!(teleportResults || state.teleportResults?.length),
         });
       },
 

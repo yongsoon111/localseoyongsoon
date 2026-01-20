@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuditStore } from '@/stores/audit-store';
@@ -16,6 +16,7 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
   const [business, setBusiness] = useState<SavedBusiness | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const loadedRef = useRef<string | null>(null);  // 이미 로드한 비즈니스 ID 추적
 
   const {
     business: auditBusiness,
@@ -34,15 +35,22 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
     }
   }, [authLoading, user, router]);
 
-  // 비즈니스 로드 - 항상 DB에서 가져옴
+  // 비즈니스 로드 - 이미 로드한 경우 스킵
   useEffect(() => {
     if (!user || !id) {
       return;
     }
 
+    // 이미 같은 비즈니스를 로드했으면 스킵 (탭 전환 시 중복 로드 방지)
+    if (loadedRef.current === id) {
+      console.log('[Dashboard] 이미 로드됨, 스킵:', id);
+      return;
+    }
+
+    loadedRef.current = id;
     fetchBusinessDetail();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, id]);
+  }, [user?.id, id]);  // user 객체 대신 user.id 사용
 
   const fetchBusinessDetail = async () => {
     try {
@@ -76,20 +84,15 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
         const latestAudit = auditData.history[0];
         console.log('[Dashboard] DB에서 감사 기록 로드:', latestAudit.id);
 
-        // DB 데이터로 store 업데이트
-        const { loadAudit, setTeleportResults } = useAuditStore.getState();
+        // DB 데이터로 store 업데이트 (모든 필드 전달)
+        const { loadAudit } = useAuditStore.getState();
         loadAudit({
           business: latestAudit.audit_data?.business,
           reviewData: latestAudit.audit_data?.reviewData,
+          teleportResults: latestAudit.audit_data?.teleportResults,
+          teleportKeyword: latestAudit.audit_data?.teleportKeyword,
+          scrapedData: latestAudit.audit_data?.scrapedData,
         }, latestAudit.basic_score || latestAudit.total_score);
-
-        // 텔레포트 결과도 로드
-        if (latestAudit.audit_data?.teleportResults) {
-          setTeleportResults(
-            latestAudit.audit_data.teleportResults,
-            latestAudit.audit_data.teleportKeyword || ''
-          );
-        }
       } else {
         // DB에 기록이 없으면 새 진단 실행
         console.log('[Dashboard] DB에 기록 없음 - 새 진단 실행:', found.name);
