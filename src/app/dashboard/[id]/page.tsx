@@ -144,16 +144,6 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
       <main className="container mx-auto px-4 py-8">
         {business && (
           <>
-            {/* 새 진단 실행 버튼 */}
-            <div className="flex justify-end mb-6">
-              <Button
-                onClick={handleRunAudit}
-                disabled={auditLoading}
-              >
-                {auditLoading ? '진단 중...' : '새 진단 실행'}
-              </Button>
-            </div>
-
             {/* 감사 결과 */}
             {auditBusiness ? (
               <AuditReport

@@ -53,10 +53,10 @@ export interface GBPAuditData {
   isTargetingForeigners?: boolean;
 }
 
-const SYSTEM_PROMPT = `당신은 '주식회사 스트라디지' 소속의 GMB 및 로컬 SEO 전략 컨설턴트입니다.
+const SYSTEM_PROMPT = `당신은 '주식회사 블링크애드' 소속의 GMB 및 로컬 SEO 전략 컨설턴트입니다.
 
 ## 핵심 원칙
-- Role: '주식회사 스트라디지' 소속의 GMB 및 로컬 SEO 전략 컨설턴트
+- Role: '주식회사 블링크애드' 소속의 GMB 및 로컬 SEO 전략 컨설턴트
 - Tone & Manner: 감성적인 비유(그물, 낚싯대, 심장 등)와 과장된 수식어를 철저히 배제함. 데이터와 현상에 입각하여 담백하고 냉철하게 진단함
 - Sentence Style: "~함", "~임", "~해야 합니다"와 같이 전문적이고 명확한 종결어미 사용. 번역투 문장(~이지만 ~입니다 등) 사용 금지
 - Objective: 클라이언트가 자신의 프로필이 가진 구조적 결함과 매출 손실 요인을 명확히 인지하게 함
@@ -95,7 +95,7 @@ const REPORT_TEMPLATE = `
 
 **Target Business:** {비즈니스 이름}
 **Date:** {날짜}
-**Auditor:** 주식회사 스트라디지 대표 정영훈
+**Auditor:** 주식회사 블링크애드 대표 권순현
 
 ---
 
@@ -339,9 +339,9 @@ export async function generateDiagnosticReport(
 
   const today = new Date().toISOString().split('T')[0];
 
-  const systemInstruction = `당신은 '주식회사 스트라디지' 소속의 GMB 및 로컬 SEO 전략 컨설턴트입니다.
+  const systemInstruction = `당신은 '주식회사 블링크애드' 소속의 GMB 및 로컬 SEO 전략 컨설턴트입니다.
 
-Role: '주식회사 스트라디지' 소속의 GMB 및 로컬 SEO 전략 컨설턴트
+Role: '주식회사 블링크애드' 소속의 GMB 및 로컬 SEO 전략 컨설턴트
 Tone & Manner: 감성적인 비유 배제. 데이터에 입각한 담백하고 냉철한 진단.
 Sentence Style: "~함", "~임", "~해야 합니다"와 같은 전문적인 명확한 종결어미 사용. 번역투 금지.
 Objective: 구조적 결함과 매출 손실 요인을 명확히 인지하게 함.
@@ -367,7 +367,7 @@ Objective: 구조적 결함과 매출 손실 요인을 명확히 인지하게 �
 
 다음 JSON 구조로 정확히 응답하세요:
 {
-  "auditor": "주식회사 스트라디지 대표 정영훈",
+  "auditor": "주식회사 블링크애드 대표 권순현",
   "targetBusiness": "비즈니스명",
   "date": "YYYY-MM-DD",
   "summary": {
@@ -455,7 +455,7 @@ Objective: 구조적 결함과 매출 손실 요인을 명확히 인지하게 �
 
     // 기본 응답 반환 (오류 메시지 포함)
     return {
-      auditor: '주식회사 스트라디지 대표 정영훈',
+      auditor: '주식회사 블링크애드 대표 권순현',
       targetBusiness: businessName,
       date: today,
       summary: {

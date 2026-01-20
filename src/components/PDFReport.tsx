@@ -157,7 +157,7 @@ export const PDFReport = forwardRef<HTMLDivElement, PDFReportProps>(({
         <div className="text-slate-600 space-y-1">
           <p><strong>Target Business:</strong> {business.name}</p>
           <p><strong>Date:</strong> {formatDate(new Date())}</p>
-          <p><strong>Auditor:</strong> 주식회사 스트라디지 대표 정영훈</p>
+          <p><strong>Auditor:</strong> 주식회사 블링크애드 대표 권순현</p>
         </div>
       </div>
 
@@ -426,8 +426,8 @@ export const PDFReport = forwardRef<HTMLDivElement, PDFReportProps>(({
 
       {/* 푸터 */}
       <div className="border-t-2 border-slate-300 pt-4 mt-8 text-center text-slate-500 text-xs">
-        <p>본 보고서는 주식회사 스트라디지에서 제공하는 GBP 심층 진단 서비스입니다.</p>
-        <p>문의: contact@stradigi.co.kr</p>
+        <p>본 보고서는 주식회사 블링크애드에서 제공하는 GBP 심층 진단 서비스입니다.</p>
+        <p>문의: contact@blinkad.co.kr</p>
       </div>
     </div>
   );

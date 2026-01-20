@@ -60,7 +60,7 @@ export function AIReportSection({
             <ShieldCheck className="w-8 h-8 text-blue-400" />
           </div>
           <div>
-            <h2 className="text-xl font-black text-white tracking-tight">주식회사 스트라디지</h2>
+            <h2 className="text-xl font-black text-white tracking-tight">주식회사 블링크애드</h2>
             <p className="text-blue-400 text-[10px] font-black uppercase tracking-[0.3em] mt-1">GBP Strategic Insight Engine V4</p>
           </div>
         </div>
@@ -122,7 +122,7 @@ export function AIReportSection({
               isDarkTheme ? 'text-slate-400' : 'text-slate-500'
             }`}>
               리뷰 트렌드 분석, 부정 패턴 추출 및 전 항목 진단을 포함한<br />
-              주식회사 스트라디지 V4 마스터 보고서를 생성합니다.
+              주식회사 블링크애드 V4 마스터 보고서를 생성합니다.
             </p>
           </div>
         )}
@@ -439,7 +439,7 @@ export function AIReportSection({
               isDarkTheme ? 'border-slate-800' : 'border-slate-100'
             }`}>
               <div className="max-w-xs text-slate-400 text-[10px] leading-relaxed font-bold italic">
-                본 리포트는 주식회사 스트라디지의 전략적 분석 알고리즘 V4에 의해 생성되었습니다.
+                본 리포트는 주식회사 블링크애드의 전략적 분석 알고리즘 V4에 의해 생성되었습니다.
                 Google Business Profile의 실시간 신호와 로컬 SEO 데이터를 바탕으로 합니다.
               </div>
               <div className="text-right">
@@ -449,7 +449,7 @@ export function AIReportSection({
                   </div>
                   <div className="text-right leading-none">
                     <p className={`text-3xl font-black tracking-tighter ${isDarkTheme ? 'text-white' : 'text-slate-900'}`}>
-                      주식회사 스트라디지
+                      주식회사 블링크애드
                     </p>
                     <p className="text-[10px] text-slate-500 font-black tracking-[0.3em] uppercase mt-2">
                       Strategic Insight Group
@@ -457,7 +457,7 @@ export function AIReportSection({
                   </div>
                 </div>
                 <div className="text-[10px] font-bold text-slate-400 mt-2">
-                  Authorized Auditor: CEO YOUNGHUN JEONG
+                  Authorized Auditor: CEO SOONHYUN KWON
                 </div>
               </div>
             </div>
