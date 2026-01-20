@@ -764,7 +764,7 @@ export function DiagnosticReport({
       {/* 푸터 */}
       <div className="border-t-2 border-slate-300 pt-6 text-center text-sm text-slate-500">
         <p>본 보고서는 Google Business Profile 공개 데이터를 기반으로 작성되었습니다.</p>
-        <p className="mt-1">© 주식회사 블링크애드 | contact@blinkad.co.kr</p>
+        <p className="mt-1">© 주식회사 블링크애드 | ceo@blinkad.kr</p>
       </div>
 
         </div>
