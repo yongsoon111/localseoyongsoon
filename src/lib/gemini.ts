@@ -344,72 +344,67 @@ export async function generateDiagnosticReport(
 
   const today = new Date().toISOString().split('T')[0];
 
-  const systemInstruction = `당신은 '주식회사 블링크애드' 소속의 GMB 및 로컬 SEO 전략 컨설턴트입니다.
+  const systemInstruction = `당신은 GBP 진단 전문가입니다.
 
-Role: '주식회사 블링크애드' 소속의 GMB 및 로컬 SEO 전략 컨설턴트
-Tone & Manner: 감성적인 비유 배제. 데이터에 입각한 담백하고 냉철한 진단.
-Sentence Style: "~함", "~임", "~해야 합니다"와 같은 전문적인 명확한 종결어미 사용. 번역투 금지.
-Objective: 구조적 결함과 매출 손실 요인을 명확히 인지하게 함.
+[필수 출력 규칙]
+1. 반드시 아래 JSON 형식으로만 응답
+2. 백틱(\`\`\`json 또는 \`\`\`) 절대 사용 금지
+3. JSON 외 다른 텍스트 출력 금지
+4. { 로 시작해서 } 로 끝나야 함
 
-[핵심 분석 항목]
-1. 리뷰 트렌드: 최근 6개월간의 변화(리뷰수, 평점, 응답률)를 시계열로 분석.
-2. 부정 리뷰 패턴: 낮은 평점 리뷰에서 반복되는 핵심 불만 키워드를 추출하여 빈도/비율 분석.
-3. 로컬 SEO: 순위 데이터와 프로필 최적화 상태 대조.
-
-반드시 JSON 형식으로만 응답하세요. 마크다운이나 다른 텍스트 없이 순수 JSON만 출력하세요.`;
-
-  const prompt = `
-비즈니스명: '${businessName}'
-
-[분석 데이터셋]
-1. GMB 데이터 (체크리스트): ${JSON.stringify(checklist.map(c => ({ cat: c.category, item: c.item, val: c.currentValue, status: c.status })))}
-2. 리뷰 데이터 (평판): ${JSON.stringify(reviews.slice(0, 20).map(r => ({ r: r.rating, c: r.text?.slice(0, 100), d: r.date, hasReply: !!r.ownerResponse })))}
-3. 순위 데이터: ${ranking}
-4. 오늘 날짜: ${today}
-
-위 데이터를 망라하여 [Google Business Profile 심층 진단 보고서 V4]를 작성하십시오.
-특히 '리뷰 트렌드'와 '부정 리뷰 패턴'에 대한 심도 있는 분석을 포함해야 합니다.
-
-다음 JSON 구조로 정확히 응답하세요:
+[출력 JSON 형식]
 {
   "auditor": "주식회사 블링크애드 대표 권순현",
   "targetBusiness": "비즈니스명",
-  "date": "YYYY-MM-DD",
+  "date": "${today}",
   "summary": {
-    "headline": "핵심 문제점을 한 줄로 요약하는 직설적 헤드라인",
-    "impactDescription": "현재 프로필 상태가 타겟 고객에게 주는 부정적 영향 서술"
+    "headline": "핵심 문제점 한 줄 요약",
+    "impactDescription": "부정적 영향 서술"
   },
   "reviewTrend": [
-    {"period": "2024년 1월", "count": 숫자, "rating": 숫자, "responseRate": "퍼센트%"},
-    ...최근 6개월 데이터
+    {"period": "2024년 1월", "count": 10, "rating": 4.2, "responseRate": "50%"}
   ],
   "negativePatterns": {
-    "totalNegativeReviews": 1-3점 리뷰 총 개수,
+    "totalNegativeReviews": 5,
     "topComplaints": [
-      {"category": "불만 유형", "count": 횟수, "percentage": "비율%", "quotes": "실제 리뷰 인용"},
-      ...최대 5개
+      {"category": "불만유형", "count": 3, "percentage": "60%", "quotes": "리뷰인용"}
     ],
     "prioritizedImprovements": ["1순위: 개선사항", "2순위: 개선사항", "3순위: 개선사항"]
   },
   "sections": [
     {
       "title": "기초 정보 세팅",
-      "items": [{"label": "항목명", "status": "SUCCESS/WARNING/ERROR", "diagnosis": "진단 내용"}, ...]
+      "items": [{"label": "항목명", "status": "SUCCESS", "diagnosis": "진단내용"}]
     },
-    {"title": "평판 및 리뷰 분석", "items": [...]},
-    {"title": "시각적 전환율", "items": [...]},
-    {"title": "알고리즘 신호", "items": [...]}
+    {"title": "평판 및 리뷰 분석", "items": []},
+    {"title": "시각적 전환율", "items": []},
+    {"title": "알고리즘 신호", "items": []}
   ],
   "finalAssessment": {
-    "oneLineReview": "냉철한 현실 진단 한 줄 평",
-    "warning": "현재 상태 유지 시 발생할 손실에 대한 최종 경고"
+    "oneLineReview": "한 줄 평",
+    "warning": "경고 메시지"
   },
   "actionPlan": [
-    {"title": "과제 1 제목", "description": "구체적인 실행 방안 및 기대 효과"},
-    {"title": "과제 2 제목", "description": "..."},
-    {"title": "과제 3 제목", "description": "..."}
+    {"title": "과제1", "description": "설명"},
+    {"title": "과제2", "description": "설명"},
+    {"title": "과제3", "description": "설명"}
   ]
-}`;
+}
+
+[분석 기준]
+- 감성적 비유 배제, 데이터 기반 냉철한 진단
+- "~함", "~임" 종결어미 사용`;
+
+  const prompt = `[분석 대상]
+비즈니스: ${businessName}
+날짜: ${today}
+
+[데이터]
+체크리스트: ${JSON.stringify(checklist.map(c => ({ cat: c.category, item: c.item, val: c.currentValue, status: c.status })))}
+리뷰(최근20개): ${JSON.stringify(reviews.slice(0, 20).map(r => ({ r: r.rating, c: r.text?.slice(0, 100), d: r.date, hasReply: !!r.ownerResponse })))}
+순위: ${ranking}
+
+위 데이터 기반으로 GBP 심층 진단 보고서를 JSON으로 출력하세요.`;
 
   try {
     // API 키 체크
