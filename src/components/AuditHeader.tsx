@@ -67,7 +67,7 @@ export function AuditHeader({
 
   return (
     <header className="glass-header border-b no-print">
-      <div className="container mx-auto px-4 py-4 max-w-6xl">
+      <div className="container mx-auto px-4 py-4 max-w-3xl">
         {/* Upper Row */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
           <div className="flex items-start gap-4">
