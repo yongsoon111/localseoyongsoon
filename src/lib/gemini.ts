@@ -406,12 +406,24 @@ Objective: 구조적 결함과 매출 손실 요인을 명확히 인지하게 �
 }`;
 
   try {
+    // API 키 체크
+    if (!apiKey) {
+      console.error('[Gemini] API 키가 설정되지 않았습니다');
+      throw new Error('GOOGLE_GEMINI_API_KEY 환경변수가 설정되지 않았습니다');
+    }
+
+    console.log('[Gemini] 심층 진단 보고서 생성 시작:', businessName);
+    console.log('[Gemini] 체크리스트 항목 수:', checklist.length);
+    console.log('[Gemini] 리뷰 항목 수:', reviews.length);
+
     const result = await model.generateContent([
       { text: systemInstruction },
       { text: prompt },
     ]);
 
     const responseText = result.response.text();
+    console.log('[Gemini] 응답 길이:', responseText.length);
+    console.log('[Gemini] 응답 시작 부분:', responseText.substring(0, 200));
 
     // JSON 파싱 시도 (마크다운 코드 블록 제거)
     let jsonStr = responseText.trim();
@@ -426,18 +438,28 @@ Objective: 구조적 결함과 매출 손실 요인을 명확히 인지하게 �
     }
     jsonStr = jsonStr.trim();
 
-    const parsed = JSON.parse(jsonStr);
-    return parsed;
+    try {
+      const parsed = JSON.parse(jsonStr);
+      console.log('[Gemini] JSON 파싱 성공');
+      return parsed;
+    } catch (parseError) {
+      console.error('[Gemini] JSON 파싱 실패:', parseError);
+      console.error('[Gemini] 파싱 시도한 문자열:', jsonStr.substring(0, 500));
+      throw new Error('JSON 파싱 실패: ' + (parseError instanceof Error ? parseError.message : String(parseError)));
+    }
   } catch (error) {
-    console.error('Gemini Diagnostic Report Error:', error);
-    // 기본 응답 반환
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('[Gemini] Diagnostic Report Error:', errorMessage);
+    console.error('[Gemini] Full error:', error);
+
+    // 기본 응답 반환 (오류 메시지 포함)
     return {
       auditor: '주식회사 스트라디지 대표 정영훈',
       targetBusiness: businessName,
       date: today,
       summary: {
         headline: 'AI 분석 중 오류가 발생했습니다',
-        impactDescription: '잠시 후 다시 시도해주세요. 오류가 지속되면 관리자에게 문의하세요.',
+        impactDescription: `오류 내용: ${errorMessage}. 잠시 후 다시 시도해주세요.`,
       },
       reviewTrend: [],
       negativePatterns: {
