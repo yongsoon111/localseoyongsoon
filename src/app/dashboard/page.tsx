@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { AddBusinessModal } from '@/components/AddBusinessModal';
-import { SavedBusiness } from '@/types';
+import { SavedBusiness, AuditHistoryItem } from '@/types';
 import { Search, Plus, TrendingUp, TrendingDown, Minus, ChevronRight, LayoutDashboard, Trash2, Loader2 } from 'lucide-react';
 
 // 트렌드 계산 함수
@@ -111,7 +111,7 @@ export default function DashboardPage() {
       // 3. 비즈니스 목록 업데이트 (점수 반영)
       setBusinesses(prev => prev.map(b =>
         b.id === business.id
-          ? { ...b, latest_audit: { total_score: auditData.score, basic_score: auditData.score } }
+          ? { ...b, latest_audit: { ...b.latest_audit, total_score: auditData.score, basic_score: auditData.score } as AuditHistoryItem }
           : b
       ));
     } catch (err) {
