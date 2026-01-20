@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { ClipboardCheck, CheckCircle2, AlertTriangle, XCircle, Search, TrendingUp, AlertOctagon, Info } from 'lucide-react';
+import React, { useState } from 'react';
+import { ClipboardCheck, CheckCircle2, AlertTriangle, XCircle, Search, TrendingUp, AlertOctagon, Info, X } from 'lucide-react';
 import { ChecklistItem, DiagnosticStatus, ThemeType } from '@/types';
 
 interface ChecklistProps {
@@ -9,8 +9,101 @@ interface ChecklistProps {
   theme: ThemeType;
 }
 
+// 현재값 상세 팝업
+function ValueDetailModal({
+  item,
+  isDarkTheme,
+  onClose,
+}: {
+  item: ChecklistItem;
+  isDarkTheme: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className={`w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden ${
+          isDarkTheme ? 'bg-slate-900 border border-slate-700' : 'bg-white border border-slate-200'
+        }`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className={`p-4 border-b flex items-center justify-between ${
+          isDarkTheme ? 'border-slate-700 bg-slate-800/50' : 'border-slate-100 bg-slate-50'
+        }`}>
+          <div>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
+              isDarkTheme ? 'bg-slate-700 text-slate-400' : 'bg-slate-200 text-slate-500'
+            }`}>
+              {item.category}
+            </span>
+            <h3 className={`mt-2 text-lg font-bold ${isDarkTheme ? 'text-white' : 'text-slate-900'}`}>
+              {item.item}
+            </h3>
+          </div>
+          <button
+            onClick={onClose}
+            className={`p-2 rounded-full transition-colors ${
+              isDarkTheme ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-slate-200 text-slate-500'
+            }`}
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-4">
+          <div>
+            <p className={`text-xs font-bold uppercase mb-2 ${isDarkTheme ? 'text-slate-500' : 'text-slate-400'}`}>
+              현재값
+            </p>
+            <div className={`p-4 rounded-xl text-sm leading-relaxed whitespace-pre-wrap break-words ${
+              isDarkTheme ? 'bg-slate-800 text-slate-300' : 'bg-slate-50 text-slate-700'
+            }`}>
+              {item.currentValue || '-'}
+            </div>
+          </div>
+
+          <div>
+            <p className={`text-xs font-bold uppercase mb-2 ${isDarkTheme ? 'text-slate-500' : 'text-slate-400'}`}>
+              진단 결과
+            </p>
+            <p className={`text-sm font-medium ${
+              item.status === DiagnosticStatus.SUCCESS
+                ? isDarkTheme ? 'text-green-400' : 'text-green-600'
+                : item.status === DiagnosticStatus.WARNING
+                  ? isDarkTheme ? 'text-amber-400' : 'text-amber-600'
+                  : isDarkTheme ? 'text-red-400' : 'text-red-600'
+            }`}>
+              {item.diagnosis}
+            </p>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className={`p-4 border-t ${isDarkTheme ? 'border-slate-700' : 'border-slate-100'}`}>
+          <button
+            onClick={onClose}
+            className={`w-full py-2.5 rounded-xl text-sm font-bold transition-colors ${
+              isDarkTheme
+                ? 'bg-slate-800 hover:bg-slate-700 text-white'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-900'
+            }`}
+          >
+            닫기
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Checklist({ data, theme }: ChecklistProps) {
   const isDarkTheme = theme !== 'light';
+  const [selectedItem, setSelectedItem] = useState<ChecklistItem | null>(null);
 
   // 상태별 카운트
   const successCount = data.filter(d => d.status === DiagnosticStatus.SUCCESS).length;
@@ -156,10 +249,16 @@ export function Checklist({ data, theme }: ChecklistProps) {
                     {getStatusIcon(item.status)}
                   </div>
                 </td>
-                <td className={`px-6 py-4 text-sm max-w-[200px] truncate ${
-                  isDarkTheme ? 'text-slate-400' : 'text-slate-600'
-                }`}>
-                  {item.currentValue}
+                <td className="px-6 py-4">
+                  <button
+                    onClick={() => setSelectedItem(item)}
+                    className={`text-sm max-w-[200px] truncate block text-left cursor-pointer hover:underline transition-colors ${
+                      isDarkTheme ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                    title="클릭하여 자세히 보기"
+                  >
+                    {item.currentValue || '-'}
+                  </button>
                 </td>
                 <td className={`px-6 py-4 text-sm font-medium ${getStatusTextColor(item.status)}`}>
                   {item.diagnosis}
@@ -180,6 +279,15 @@ export function Checklist({ data, theme }: ChecklistProps) {
             </span>
           </div>
         </div>
+      )}
+
+      {/* 현재값 상세 팝업 */}
+      {selectedItem && (
+        <ValueDetailModal
+          item={selectedItem}
+          isDarkTheme={isDarkTheme}
+          onClose={() => setSelectedItem(null)}
+        />
       )}
     </div>
   );

@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Users, Trophy, Star, Lightbulb,
-  ChevronRight, Info, Radar, AlertCircle
+  ChevronRight, Info, Radar, AlertCircle, Search
 } from 'lucide-react';
 import { ThemeType, BusinessInfo, CompetitorAnalysis } from '@/types';
 import { useAuditStore } from '@/stores/audit-store';
@@ -22,13 +22,21 @@ export function CompetitorSection({ business, theme }: CompetitorSectionProps) {
   } = useAuditStore();
 
   const isDarkTheme = theme !== 'light';
+  const [keyword, setKeyword] = useState('');
 
-  // 컴포넌트 마운트 시 경쟁사 데이터 가져오기
-  useEffect(() => {
-    if (!competitorData && business.location?.lat && business.location?.lng) {
-      fetchCompetitors();
+  // 경쟁사 분석 실행
+  const handleAnalyze = () => {
+    if (keyword.trim()) {
+      fetchCompetitors(keyword.trim());
     }
-  }, [business, competitorData, fetchCompetitors]);
+  };
+
+  // 엔터 키 처리
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && keyword.trim()) {
+      handleAnalyze();
+    }
+  };
 
   // 경쟁사 데이터 or 기본값
   const competitors: CompetitorAnalysis[] = competitorData?.competitors || [
@@ -62,28 +70,122 @@ export function CompetitorSection({ business, theme }: CompetitorSectionProps) {
     ) / 3)}위`,
   } : { rating: '-', reviews: '-', photos: '-', overall: '-' });
 
-  if (loading) {
+  // 키워드 입력 UI (분석 전 또는 로딩 중)
+  if (!competitorData || loading) {
     return (
-      <div className={`rounded-3xl border shadow-sm p-24 flex flex-col items-center justify-center text-center ${
+      <div className={`rounded-3xl border shadow-sm overflow-hidden ${
         isDarkTheme ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
       }`}>
-        <div className="relative mb-10">
-          <Radar className="w-20 h-20 text-orange-500 animate-pulse" />
-          <div className="absolute inset-0 border-4 border-orange-500/20 rounded-full animate-ping" />
+        {/* Header */}
+        <div className={`p-8 border-b ${isDarkTheme ? 'border-slate-800' : 'border-slate-100'}`}>
+          <div className="flex items-center gap-4">
+            <div className={`p-3 rounded-2xl border ${
+              isDarkTheme
+                ? 'bg-orange-950/30 border-orange-900/50'
+                : 'bg-orange-50 border-orange-100'
+            }`}>
+              <Users className={`w-6 h-6 ${isDarkTheme ? 'text-orange-400' : 'text-orange-600'}`} />
+            </div>
+            <div>
+              <h2 className={`text-xl font-black tracking-tight ${isDarkTheme ? 'text-white' : 'text-slate-900'}`}>
+                경쟁사 분석
+              </h2>
+              <p className={`text-xs mt-1 font-bold uppercase tracking-wider ${
+                isDarkTheme ? 'text-slate-500' : 'text-slate-400'
+              }`}>
+                키워드 기준 • 반경 500m 이내
+              </p>
+            </div>
+          </div>
         </div>
-        <h3 className={`text-2xl font-black tracking-tight ${isDarkTheme ? 'text-white' : 'text-slate-900'}`}>
-          경쟁사 마켓 데이터 스캐닝 중...
-        </h3>
-        <p className={`text-sm mt-4 font-bold uppercase tracking-[0.2em] leading-relaxed ${
-          isDarkTheme ? 'text-slate-500' : 'text-slate-400'
-        }`}>
-          [Google Places API] 카테고리 &quot;{business.category}&quot; • 반경 500m 내 경쟁 업체 수집<br />
-          Scanning Nearby Businesses...
-        </p>
-        <div className="mt-8 flex gap-2">
-          <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
-          <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-          <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+
+        {/* 키워드 입력 섹션 */}
+        <div className="p-8">
+          {loading ? (
+            // 로딩 UI
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="relative mb-8">
+                <Radar className="w-16 h-16 text-orange-500 animate-pulse" />
+                <div className="absolute inset-0 border-4 border-orange-500/20 rounded-full animate-ping" />
+              </div>
+              <h3 className={`text-xl font-black tracking-tight ${isDarkTheme ? 'text-white' : 'text-slate-900'}`}>
+                경쟁사 마켓 데이터 스캐닝 중...
+              </h3>
+              <p className={`text-sm mt-3 font-bold uppercase tracking-wider ${
+                isDarkTheme ? 'text-slate-500' : 'text-slate-400'
+              }`}>
+                [Google Places API] &quot;{keyword}&quot; • 반경 500m
+              </p>
+              <div className="mt-6 flex gap-2">
+                <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
+                <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+              </div>
+            </div>
+          ) : (
+            // 키워드 입력 UI
+            <div className="max-w-xl mx-auto">
+              <div className="text-center mb-8">
+                <div className={`inline-flex p-4 rounded-2xl mb-4 ${
+                  isDarkTheme ? 'bg-slate-800' : 'bg-slate-100'
+                }`}>
+                  <Search className={`w-8 h-8 ${isDarkTheme ? 'text-orange-400' : 'text-orange-500'}`} />
+                </div>
+                <h3 className={`text-lg font-bold ${isDarkTheme ? 'text-white' : 'text-slate-900'}`}>
+                  검색 키워드를 입력하세요
+                </h3>
+                <p className={`text-sm mt-2 ${isDarkTheme ? 'text-slate-400' : 'text-slate-500'}`}>
+                  해당 키워드로 반경 500m 내 경쟁사를 검색합니다
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="예: 딤섬 맛집, 중국집, 레스토랑..."
+                  className={`flex-1 px-4 py-3 rounded-xl border text-sm font-medium transition-colors ${
+                    isDarkTheme
+                      ? 'bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:border-orange-500'
+                      : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-orange-500'
+                  } focus:outline-none focus:ring-2 focus:ring-orange-500/20`}
+                />
+                <button
+                  onClick={handleAnalyze}
+                  disabled={!keyword.trim()}
+                  className={`px-6 py-3 rounded-xl text-sm font-bold transition-all ${
+                    keyword.trim()
+                      ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                      : isDarkTheme
+                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                        : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                  }`}
+                >
+                  분석 시작
+                </button>
+              </div>
+
+              {error && (
+                <div className={`mt-4 p-3 rounded-xl flex items-center gap-2 ${
+                  isDarkTheme
+                    ? 'bg-red-900/20 text-red-400'
+                    : 'bg-red-50 text-red-600'
+                }`}>
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <p className="text-sm font-medium">{error}</p>
+                </div>
+              )}
+
+              <div className={`mt-6 p-4 rounded-xl ${isDarkTheme ? 'bg-slate-800/50' : 'bg-slate-50'}`}>
+                <p className={`text-xs font-medium ${isDarkTheme ? 'text-slate-400' : 'text-slate-500'}`}>
+                  <Info className="w-3.5 h-3.5 inline mr-1" />
+                  키워드 예시: 업종명(카페, 미용실), 메뉴명(치킨, 피자), 특징(24시간, 배달)
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -125,7 +227,7 @@ export function CompetitorSection({ business, theme }: CompetitorSectionProps) {
               <p className={`text-xs mt-1 font-bold uppercase tracking-wider ${
                 isDarkTheme ? 'text-slate-500' : 'text-slate-400'
               }`}>
-                &quot;{business.category}&quot; 카테고리 • 반경 500m 이내
+                &quot;{competitorData?.searchKeyword || keyword}&quot; 키워드 • 반경 500m 이내
               </p>
             </div>
           </div>

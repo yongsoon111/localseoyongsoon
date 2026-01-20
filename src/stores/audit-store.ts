@@ -111,7 +111,7 @@ interface AuditState {
   fetchTeleportSingle: (keyword: string, lat: number, lng: number, targetPlaceId: string) => Promise<TeleportResult | null>;
   fetchTeleportGrid: (keyword: string, centerLat: number, centerLng: number, targetPlaceId: string, gridSize: number, radiusMiles: number) => Promise<TeleportResult[]>;
   fetchScrapedData: (placeId: string) => Promise<void>;
-  fetchCompetitors: () => Promise<void>;
+  fetchCompetitors: (keyword?: string) => Promise<void>;
   generateAIReport: (checklist: ChecklistItem[]) => Promise<void>;
   loadAudit: (auditData: any, score: number) => void;
   saveCurrentToCache: () => void;
@@ -520,8 +520,8 @@ export const useAuditStore = create<AuditState>()(
         }
       },
 
-      // 경쟁사 분석
-      fetchCompetitors: async () => {
+      // 경쟁사 분석 (키워드 기반)
+      fetchCompetitors: async (keyword?: string) => {
         const state = get();
         const business = state.business;
         if (!business?.location?.lat || !business?.location?.lng) {
@@ -529,17 +529,22 @@ export const useAuditStore = create<AuditState>()(
           return;
         }
 
+        if (!keyword) {
+          set({ competitorError: '검색 키워드를 입력해주세요.' });
+          return;
+        }
+
         const businessId = state.currentBusinessId || '';
         const businessName = business.name || '';
 
         const taskId = get().startTask('competitors', businessId, businessName);
-        set({ competitorLoading: true, competitorError: null });
+        set({ competitorLoading: true, competitorError: null, competitorData: null });
 
         try {
           const params = new URLSearchParams({
             lat: business.location.lat.toString(),
             lng: business.location.lng.toString(),
-            category: business.category || '',
+            category: keyword,  // 키워드를 category 파라미터로 전달 (API에서 searchKeyword로 사용)
             myPlaceId: business.placeId || '',
             myName: business.name,
             myRating: business.rating.toString(),
