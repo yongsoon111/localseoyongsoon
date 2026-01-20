@@ -260,7 +260,11 @@ export function Checklist({ data, theme }: ChecklistProps) {
                     {item.currentValue || '-'}
                   </button>
                 </td>
-                <td className={`px-6 py-4 text-sm font-medium ${getStatusTextColor(item.status)}`}>
+                <td className={`px-6 py-4 text-sm ${
+                    item.status === DiagnosticStatus.WARNING || item.status === DiagnosticStatus.ERROR
+                      ? 'font-bold'
+                      : 'font-medium'
+                  } ${getStatusTextColor(item.status)}`}>
                   {item.diagnosis}
                 </td>
               </tr>
