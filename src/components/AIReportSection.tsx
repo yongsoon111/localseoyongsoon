@@ -147,7 +147,7 @@ export function AIReportSection({
         )}
 
         {report && !loading && (
-          <div className="p-10 md:p-16 animate-in fade-in slide-in-from-bottom-8 duration-700 max-w-5xl mx-auto print:p-0">
+          <div className="p-10 md:p-16 animate-in fade-in slide-in-from-bottom-8 duration-700 max-w-5xl mx-auto print:p-8">
             {/* Header Data Section */}
             <div className={`mb-16 border-b-4 pb-12 ${isDarkTheme ? 'border-slate-700' : 'border-slate-900'}`}>
               <div className="flex justify-between items-start mb-10">
