@@ -76,6 +76,18 @@ export interface ReportData {
     title: string;
     description: string;
   }>;
+  competitorAnalysis?: {
+    summary: string;
+    metrics: Array<{
+      metric: string;
+      myValue: string;
+      avgCompetitor: string;
+      gap: string;
+      status: 'winning' | 'losing' | 'tie';
+    }>;
+    threats: string[];
+    opportunities: string[];
+  };
 }
 
 // 경쟁사 리뷰 타입

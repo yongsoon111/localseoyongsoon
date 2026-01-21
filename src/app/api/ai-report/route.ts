@@ -6,15 +6,29 @@ import { generateDiagnosticReport, DiagnosticReportInput } from '@/lib/gemini';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { businessName, checklist, reviews, negativeReviews, reviewStats, rankingInfo } = body;
+    const {
+      businessName,
+      businessRating,
+      businessReviewCount,
+      businessPhotos,
+      checklist,
+      reviews,
+      negativeReviews,
+      reviewStats,
+      rankingInfo,
+      competitorData,
+    } = body;
 
     console.log('[AI Report] 요청 수신:', {
       businessName,
+      businessRating,
+      businessReviewCount,
       checklistCount: checklist?.length || 0,
       reviewsCount: reviews?.length || 0,
       negativeReviewsCount: negativeReviews?.length || 0,
       reviewStats,
       rankingInfo,
+      competitorCount: competitorData?.length || 0,
     });
 
     // 환경변수 체크
@@ -36,7 +50,13 @@ export async function POST(req: NextRequest) {
       reviews as DiagnosticReportInput[] || [],
       negativeReviews as DiagnosticReportInput[] || [],
       reviewStats || null,
-      rankingInfo || '순위 미확인'
+      rankingInfo || '순위 미확인',
+      {
+        rating: businessRating,
+        reviewCount: businessReviewCount,
+        photos: businessPhotos,
+        competitors: competitorData || [],
+      }
     );
 
     // 보고서가 오류 상태인지 확인

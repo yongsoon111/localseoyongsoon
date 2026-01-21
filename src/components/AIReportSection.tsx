@@ -394,6 +394,122 @@ export function AIReportSection({
               </div>
             )}
 
+            {/* Competitor Analysis */}
+            {report.competitorAnalysis && (
+              <div className="mb-20">
+                <h2 className={`text-xl font-black flex items-center gap-3 mb-8 uppercase tracking-tight ${
+                  isDarkTheme ? 'text-white' : 'text-slate-900'
+                }`}>
+                  <Target className="w-6 h-6 text-purple-600" />
+                  경쟁사 대비 분석
+                </h2>
+
+                {/* Summary */}
+                <div className={`p-6 rounded-2xl border-2 mb-6 ${
+                  isDarkTheme ? 'bg-purple-950/20 border-purple-900/50' : 'bg-purple-50/50 border-purple-200'
+                }`}>
+                  <p className={`font-bold ${isDarkTheme ? 'text-purple-300' : 'text-purple-700'}`}>
+                    {report.competitorAnalysis.summary}
+                  </p>
+                </div>
+
+                {/* Metrics Table */}
+                {report.competitorAnalysis.metrics && report.competitorAnalysis.metrics.length > 0 && (
+                  <div className={`border-2 rounded-3xl overflow-hidden shadow-sm mb-6 ${
+                    isDarkTheme ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'
+                  }`}>
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className={`border-b-2 text-sm font-black uppercase tracking-[0.1em] ${
+                          isDarkTheme
+                            ? 'bg-slate-800/50 border-slate-700 text-slate-300'
+                            : 'bg-slate-50 border-slate-100 text-slate-700'
+                        }`}>
+                          <th className="px-6 py-4">지표</th>
+                          <th className="px-6 py-4 text-center">내 매장</th>
+                          <th className="px-6 py-4 text-center">경쟁사 평균</th>
+                          <th className="px-6 py-4 text-center">차이</th>
+                          <th className="px-6 py-4 text-center">상태</th>
+                        </tr>
+                      </thead>
+                      <tbody className={`divide-y font-bold ${isDarkTheme ? 'divide-slate-700' : 'divide-slate-100'}`}>
+                        {report.competitorAnalysis.metrics.map((m, i) => (
+                          <tr key={i} className={isDarkTheme ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50/50'}>
+                            <td className={`px-6 py-4 font-black ${isDarkTheme ? 'text-slate-200' : 'text-slate-800'}`}>
+                              {m.metric}
+                            </td>
+                            <td className={`px-6 py-4 text-center ${isDarkTheme ? 'text-slate-300' : 'text-slate-600'}`}>
+                              {m.myValue}
+                            </td>
+                            <td className={`px-6 py-4 text-center ${isDarkTheme ? 'text-slate-300' : 'text-slate-600'}`}>
+                              {m.avgCompetitor}
+                            </td>
+                            <td className={`px-6 py-4 text-center font-black ${
+                              m.status === 'winning' ? 'text-green-500' :
+                              m.status === 'losing' ? 'text-red-500' : 'text-yellow-500'
+                            }`}>
+                              {m.gap}
+                            </td>
+                            <td className="px-6 py-4 text-center">
+                              <span className={`px-3 py-1 rounded-full text-xs font-black ${
+                                m.status === 'winning'
+                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                  : m.status === 'losing'
+                                    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                    : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                              }`}>
+                                {m.status === 'winning' ? '우위' : m.status === 'losing' ? '열세' : '동등'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Threats & Opportunities */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  {report.competitorAnalysis.threats && report.competitorAnalysis.threats.length > 0 && (
+                    <div className={`p-6 rounded-2xl border-2 ${
+                      isDarkTheme ? 'bg-red-950/20 border-red-900/50' : 'bg-red-50/50 border-red-200'
+                    }`}>
+                      <h4 className={`text-sm font-black uppercase tracking-widest mb-4 ${
+                        isDarkTheme ? 'text-red-400' : 'text-red-600'
+                      }`}>
+                        ⚠️ 위협 요인
+                      </h4>
+                      <ul className="space-y-2">
+                        {report.competitorAnalysis.threats.map((t, i) => (
+                          <li key={i} className={`text-sm font-bold ${isDarkTheme ? 'text-red-300' : 'text-red-700'}`}>
+                            • {t}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {report.competitorAnalysis.opportunities && report.competitorAnalysis.opportunities.length > 0 && (
+                    <div className={`p-6 rounded-2xl border-2 ${
+                      isDarkTheme ? 'bg-green-950/20 border-green-900/50' : 'bg-green-50/50 border-green-200'
+                    }`}>
+                      <h4 className={`text-sm font-black uppercase tracking-widest mb-4 ${
+                        isDarkTheme ? 'text-green-400' : 'text-green-600'
+                      }`}>
+                        🚀 기회 요인
+                      </h4>
+                      <ul className="space-y-2">
+                        {report.competitorAnalysis.opportunities.map((o, i) => (
+                          <li key={i} className={`text-sm font-bold ${isDarkTheme ? 'text-green-300' : 'text-green-700'}`}>
+                            • {o}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Itemized Diagnostics */}
             {report.sections && report.sections.length > 0 && (
               <div className="mb-20">

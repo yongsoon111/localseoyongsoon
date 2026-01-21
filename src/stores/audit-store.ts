@@ -667,17 +667,31 @@ export const useAuditStore = create<AuditState>()(
             ? `${state.teleportResults[0].rank}위 (${state.teleportKeyword || '키워드 미설정'})`
             : '순위 미확인';
 
+          // 경쟁사 데이터
+          const competitorData = state.competitorData?.map(c => ({
+            name: c.name,
+            rating: c.rating,
+            reviews: c.reviews,
+            photos: c.photos,
+            distance: c.distance,
+            isMe: c.isMe,
+          })) || [];
+
           // API 호출
           const res = await fetch('/api/ai-report', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               businessName: business.name,
+              businessRating: business.rating,
+              businessReviewCount: business.reviewCount,
+              businessPhotos: business.photos,
               checklist,
               reviews: allReviews,
               negativeReviews,  // 부정 리뷰 별도 전달
               reviewStats,      // 리뷰 통계 전달
               rankingInfo,
+              competitorData,   // 경쟁사 데이터 추가
             }),
           });
           const data = await res.json();

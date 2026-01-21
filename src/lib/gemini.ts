@@ -296,13 +296,30 @@ export interface ReviewStats {
   noResponseNegative: number;
 }
 
+export interface CompetitorInput {
+  name: string;
+  rating: number;
+  reviews: number;
+  photos: number;
+  distance: string;
+  isMe?: boolean;
+}
+
+export interface BusinessMetrics {
+  rating: number;
+  reviewCount: number;
+  photos: number;
+  competitors: CompetitorInput[];
+}
+
 export async function generateDiagnosticReport(
   businessName: string,
   checklist: { category: string; item: string; status: string; currentValue: string; diagnosis?: string }[],
   reviews: DiagnosticReportInput[],
   negativeReviews: DiagnosticReportInput[] = [],
   reviewStats: ReviewStats | null = null,
-  ranking: string = '순위 미확인'
+  ranking: string = '순위 미확인',
+  businessMetrics: BusinessMetrics | null = null
 ): Promise<{
   auditor: string;
   targetBusiness: string;
@@ -348,6 +365,18 @@ export async function generateDiagnosticReport(
     title: string;
     description: string;
   }>;
+  competitorAnalysis?: {
+    summary: string;
+    metrics: Array<{
+      metric: string;
+      myValue: string;
+      avgCompetitor: string;
+      gap: string;
+      status: 'winning' | 'losing' | 'tie';
+    }>;
+    threats: string[];
+    opportunities: string[];
+  };
 }> {
   const ai = getGenAI();
   const model = ai.getGenerativeModel({
@@ -361,22 +390,28 @@ export async function generateDiagnosticReport(
 
   const today = new Date().toISOString().split('T')[0];
 
-  const systemInstruction = `당신은 GBP 진단 전문가입니다.
+  const systemInstruction = `당신은 GBP 진단 전문가입니다. 냉철하고 직설적인 분석을 제공합니다.
+
+[절대 규칙 - 반드시 준수]
+1. 리뷰가 있으면 무조건 문제점과 개선점을 찾아야 함. "문제없음"은 허용하지 않음
+2. 긍정 리뷰에서도 "아쉬움", "~했으면", "~이 있었으면" 등의 개선 힌트를 찾아야 함
+3. 경쟁사 데이터가 있으면 무조건 수치 비교를 해야 함
+4. topComplaints는 최소 3개 이상 반드시 채워야 함 (부정 리뷰가 없어도 전체 리뷰에서 개선점 도출)
+5. prioritizedImprovements는 반드시 3개 이상 작성
 
 [필수 출력 규칙]
 1. 반드시 아래 JSON 형식으로만 응답
-2. 백틱(\`\`\`json 또는 \`\`\`) 절대 사용 금지
+2. 백틱 사용 금지
 3. JSON 외 다른 텍스트 출력 금지
-4. { 로 시작해서 } 로 끝나야 함
 
-[부정 리뷰 분석 카테고리]
-- 서비스/응대: 불친절, 무례함, 직원 태도, 응대 불만
+[리뷰 분석 카테고리]
+- 서비스/응대: 불친절, 무례함, 직원 태도, 응대 불만, 친절하지만 아쉬운 점
 - 대기/시간: 오래 기다림, 예약 문제, 늦은 서비스
-- 음식/품질: 맛 실망, 양 적음, 위생 문제, 온도 문제, 재료 품질
-- 가격: 비싸다, 가성비 낮음
-- 환경: 시끄러움, 좁음, 불편함, 주차 문제, 청결도
-- 예약/주문: 예약 오류, 주문 실수, 누락
-- 기타: 위 카테고리에 해당하지 않는 불만
+- 음식/품질: 맛, 양, 위생, 온도, 재료 품질
+- 가격: 가격 관련 모든 언급
+- 환경: 시끄러움, 좁음, 불편함, 주차, 청결도
+- 예약/주문: 예약/주문 관련
+- 기타: 그 외
 
 [출력 JSON 형식]
 {
@@ -384,11 +419,11 @@ export async function generateDiagnosticReport(
   "targetBusiness": "비즈니스명",
   "date": "${today}",
   "summary": {
-    "headline": "핵심 문제점 한 줄 요약",
-    "impactDescription": "부정적 영향 서술 (3-4줄)"
+    "headline": "핵심 문제점 한 줄 요약 (구체적 수치 포함)",
+    "impactDescription": "경쟁사 대비 열세 항목과 리뷰에서 발견된 문제점을 수치와 함께 서술"
   },
   "reviewTrend": [
-    {"period": "2024년 1월", "count": 10, "rating": 4.2, "responseRate": "50%"}
+    {"period": "기간", "count": 10, "rating": 4.2, "responseRate": "50%"}
   ],
   "negativePatterns": {
     "totalNegativeReviews": 15,
@@ -396,33 +431,40 @@ export async function generateDiagnosticReport(
     "topComplaints": [
       {
         "category": "서비스/응대",
-        "issue": "직원 불친절 및 응대 태도 문제",
+        "issue": "구체적인 문제 설명",
         "count": 5,
         "percentage": "33%",
         "severity": "critical",
-        "quotes": ["구체적인 리뷰 인용문 1", "구체적인 리뷰 인용문 2"],
-        "suggestedAction": "직원 서비스 교육 강화 및 CS 매뉴얼 수립 필요"
+        "quotes": ["실제 리뷰 인용문 1", "실제 리뷰 인용문 2"],
+        "suggestedAction": "구체적인 개선 방안"
       }
     ],
-    "commonKeywords": ["불친절", "오래 기다림", "비싸다"],
+    "commonKeywords": ["키워드1", "키워드2", "키워드3"],
     "prioritizedImprovements": [
-      "1순위: 가장 시급한 개선사항 (근거와 함께)",
+      "1순위: 가장 시급한 개선사항 (수치 근거 포함)",
       "2순위: 두번째 개선사항",
       "3순위: 세번째 개선사항"
     ]
   },
+  "competitorAnalysis": {
+    "summary": "경쟁사 대비 현황 요약 (수치 비교)",
+    "metrics": [
+      {"metric": "평점", "myValue": "4.2", "avgCompetitor": "4.5", "gap": "-0.3", "status": "losing"},
+      {"metric": "리뷰 수", "myValue": "50", "avgCompetitor": "120", "gap": "-70", "status": "losing"},
+      {"metric": "사진 수", "myValue": "30", "avgCompetitor": "25", "gap": "+5", "status": "winning"}
+    ],
+    "threats": ["경쟁사가 우위인 부분과 위협 요인"],
+    "opportunities": ["개선 시 경쟁 우위를 점할 수 있는 기회"]
+  },
   "sections": [
-    {
-      "title": "기초 정보 세팅",
-      "items": [{"label": "항목명", "status": "SUCCESS", "diagnosis": "진단내용"}]
-    },
+    {"title": "기초 정보 세팅", "items": [{"label": "항목명", "status": "SUCCESS", "diagnosis": "진단내용"}]},
     {"title": "평판 및 리뷰 분석", "items": []},
     {"title": "시각적 전환율", "items": []},
     {"title": "알고리즘 신호", "items": []}
   ],
   "finalAssessment": {
-    "oneLineReview": "냉철한 현실 진단 한 줄 평",
-    "warning": "현재 상태 유지 시 발생할 구체적 위험 경고"
+    "oneLineReview": "냉철한 현실 진단 (수치 포함)",
+    "warning": "현재 상태 유지 시 구체적 위험 경고"
   },
   "actionPlan": [
     {"title": "과제1", "description": "구체적 실행방안 및 기대효과"},
@@ -432,11 +474,11 @@ export async function generateDiagnosticReport(
 }
 
 [분석 기준]
-- 감성적 비유 배제, 데이터 기반 냉철한 진단
+- 데이터 기반 냉철한 진단, 감성적 비유 배제
 - "~함", "~임" 종결어미 사용
-- 부정 리뷰는 반드시 원문을 인용하여 구체적으로 분석
-- severity는 언급 빈도와 비즈니스 영향도에 따라 결정 (critical > high > medium)
-- 미답변 부정 리뷰 수를 반드시 언급하고 위험성 강조`;
+- 리뷰 원문을 반드시 인용
+- 경쟁사 대비 수치 비교 필수
+- 문제가 없어 보여도 개선 여지를 찾아 제시`;
 
   // 부정 리뷰 통계 계산
   const negativeStats = {
@@ -449,10 +491,42 @@ export async function generateDiagnosticReport(
     }
   };
 
+  // 경쟁사 분석용 데이터 준비
+  const competitors = businessMetrics?.competitors?.filter(c => !c.isMe) || [];
+  const avgCompetitorRating = competitors.length > 0
+    ? (competitors.reduce((sum, c) => sum + c.rating, 0) / competitors.length).toFixed(1)
+    : 'N/A';
+  const avgCompetitorReviews = competitors.length > 0
+    ? Math.round(competitors.reduce((sum, c) => sum + c.reviews, 0) / competitors.length)
+    : 'N/A';
+  const avgCompetitorPhotos = competitors.length > 0
+    ? Math.round(competitors.reduce((sum, c) => sum + c.photos, 0) / competitors.length)
+    : 'N/A';
+
   const prompt = `[분석 대상]
 비즈니스: ${businessName}
 날짜: ${today}
 순위: ${ranking}
+
+[내 비즈니스 지표]
+- 평점: ${businessMetrics?.rating || 'N/A'}
+- 리뷰 수: ${businessMetrics?.reviewCount || 'N/A'}개
+- 사진 수: ${businessMetrics?.photos || 'N/A'}개
+
+[경쟁사 데이터 - 반드시 수치 비교 분석 필요]
+경쟁사 수: ${competitors.length}개
+경쟁사 평균 평점: ${avgCompetitorRating}
+경쟁사 평균 리뷰 수: ${avgCompetitorReviews}개
+경쟁사 평균 사진 수: ${avgCompetitorPhotos}개
+
+경쟁사 상세:
+${JSON.stringify(competitors.map(c => ({
+  name: c.name,
+  rating: c.rating,
+  reviews: c.reviews,
+  photos: c.photos,
+  distance: c.distance
+})))}
 
 [리뷰 통계]
 ${reviewStats ? `
@@ -467,34 +541,35 @@ ${reviewStats ? `
 [체크리스트 진단 항목]
 ${JSON.stringify(checklist.map(c => ({ category: c.category, item: c.item, value: c.currentValue, status: c.status })))}
 
-[전체 리뷰 샘플 (최근 30개)]
-${JSON.stringify(reviews.slice(0, 30).map(r => ({
+[전체 리뷰 (최대 50개) - 긍정 리뷰에서도 개선점 찾을 것]
+${JSON.stringify(reviews.slice(0, 50).map(r => ({
   rating: r.rating,
-  text: r.text?.slice(0, 150),
+  text: r.text?.slice(0, 200),
   date: r.date,
   replied: !!r.ownerResponse
 })))}
 
-[부정 리뷰 전체 목록 - 핵심 분석 대상]
+[부정 리뷰 전체 목록 (1-3점) - 핵심 분석 대상]
 총 ${negativeStats.total}개 (1점: ${negativeStats.byRating.one}개, 2점: ${negativeStats.byRating.two}개, 3점: ${negativeStats.byRating.three}개)
 미답변: ${negativeStats.noResponse}개
 
 ${JSON.stringify(negativeReviews.map(r => ({
   rating: r.rating,
-  text: r.text,  // 전체 텍스트
+  text: r.text,
   date: r.date,
   author: r.author,
   ownerResponse: r.ownerResponse ? '답변완료' : '미답변'
 })))}
 
-[분석 요청]
-1. 위 부정 리뷰들을 카테고리별로 분류하고 패턴을 분석해주세요
-2. 각 불만 유형별로 실제 리뷰 원문을 인용해주세요
-3. 가장 심각한 문제부터 우선순위를 매겨주세요
-4. 미답변 부정 리뷰의 위험성을 강조해주세요
-5. 구체적인 개선 방안을 제시해주세요
+[필수 분석 요청 - 반드시 모두 수행]
+1. 경쟁사 대비 수치 비교 (평점, 리뷰 수, 사진 수) - competitorAnalysis 필수 작성
+2. 리뷰에서 문제점/개선점 최소 3개 이상 도출 - topComplaints 필수 3개 이상
+3. 긍정 리뷰에서도 "아쉬움", "~했으면" 등 개선 힌트 찾기
+4. 각 문제점에 실제 리뷰 원문 인용 필수
+5. 우선순위별 개선사항 3개 이상 - prioritizedImprovements 필수 3개 이상
+6. 경쟁에서 이기고 있는 부분과 지고 있는 부분 명확히 구분
 
-위 데이터 기반으로 GBP 심층 진단 보고서를 JSON으로 출력하세요.`;
+위 데이터 기반으로 GBP 심층 진단 보고서를 JSON으로 출력하세요. 문제점이 없다고 하지 마세요. 반드시 개선점을 찾으세요.`;
 
   try {
     // API 키 체크
