@@ -668,7 +668,7 @@ export const useAuditStore = create<AuditState>()(
             : '순위 미확인';
 
           // 경쟁사 데이터
-          const competitorData = state.competitorData?.map(c => ({
+          const competitorData = state.competitorData?.competitors?.map(c => ({
             name: c.name,
             rating: c.rating,
             reviews: c.reviews,
