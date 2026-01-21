@@ -183,7 +183,7 @@ export interface ReviewReplyParams {
 // GBP 게시물 생성
 export async function generateGBPPost(params: GBPPostParams): Promise<string> {
   const ai = getGenAI();
-  const model = ai.getGenerativeModel({ model: 'gemini-3-flash-preview' });
+  const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
   const { businessName, category, keywords = [], tone = 'professional', postType = 'update' } = params;
 
@@ -225,7 +225,7 @@ export async function generateGBPPost(params: GBPPostParams): Promise<string> {
 // 리뷰 답변 생성
 export async function generateReviewReply(params: ReviewReplyParams): Promise<string> {
   const ai = getGenAI();
-  const model = ai.getGenerativeModel({ model: 'gemini-3-flash-preview' });
+  const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
   const { reviewText, rating, businessName } = params;
 
@@ -251,7 +251,7 @@ export async function generateReviewReply(params: ReviewReplyParams): Promise<st
 // 리뷰 요약 생성
 export async function generateReviewSummary(reviews: { rating: number; text: string }[]): Promise<string> {
   const ai = getGenAI();
-  const model = ai.getGenerativeModel({ model: 'gemini-3-flash-preview' });
+  const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
   const reviewsText = reviews.map((r, i) => `${i + 1}. [${r.rating}점] ${r.text}`).join('\n');
 
@@ -351,7 +351,7 @@ export async function generateDiagnosticReport(
 }> {
   const ai = getGenAI();
   const model = ai.getGenerativeModel({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-2.5-flash',
     generationConfig: {
       maxOutputTokens: 32768,
       temperature: 0.7,
@@ -636,7 +636,7 @@ ${JSON.stringify(negativeReviews.map(r => ({
 
 export async function generateGBPAuditReport(data: GBPAuditData): Promise<string> {
   const ai = getGenAI();
-  const model = ai.getGenerativeModel({ model: 'gemini-3-flash-preview' });
+  const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
   const today = new Date().toISOString().split('T')[0];
 
