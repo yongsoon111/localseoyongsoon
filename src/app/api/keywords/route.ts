@@ -53,17 +53,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: data.status_message || 'API 오류' }, { status: 500 });
     }
 
-    const result = data.tasks?.[0]?.result?.[0];
-    if (!result) {
+    const results = data.tasks?.[0]?.result;
+    if (!results || results.length === 0) {
       return NextResponse.json({ error: '결과를 찾을 수 없습니다' }, { status: 404 });
     }
 
-    // 결과 가공
-    const keywords: KeywordData[] = (result.items || []).slice(0, 50).map((item: any) => ({
+    // 결과 가공 - result 배열이 바로 키워드 목록
+    const keywords: KeywordData[] = results.slice(0, 50).map((item: any) => ({
       keyword: item.keyword,
       searchVolume: item.search_volume || 0,
-      competition: item.competition || 0,
-      competitionLevel: item.competition_level || 'UNKNOWN',
+      competition: typeof item.competition === 'number' ? item.competition : (item.competition_index || 0) / 100,
+      competitionLevel: typeof item.competition === 'string' ? item.competition : 'UNKNOWN',
       cpc: item.cpc || 0,
       monthlySearches: item.monthly_searches || [],
     }));
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       seedKeyword: keyword,
-      totalResults: result.items?.length || 0,
+      totalResults: results.length || 0,
       keywords,
     });
   } catch (error) {
