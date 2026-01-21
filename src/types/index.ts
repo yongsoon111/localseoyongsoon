@@ -47,12 +47,17 @@ export interface ReportData {
   }>;
   negativePatterns: {
     totalNegativeReviews: number;
+    noResponseCount?: number;
     topComplaints: Array<{
       category: string;
+      issue?: string;
       count: number;
       percentage: string;
-      quotes: string;
+      severity?: 'critical' | 'high' | 'medium';
+      quotes: string | string[];
+      suggestedAction?: string;
     }>;
+    commonKeywords?: string[];
     prioritizedImprovements: string[];
   };
   sections: Array<{
