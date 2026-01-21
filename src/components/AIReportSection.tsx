@@ -256,7 +256,7 @@ export function AIReportSection({
                 </h2>
 
                 {/* 미답변 경고 */}
-                {report.negativePatterns.noResponseCount > 0 && (
+                {(report.negativePatterns.noResponseCount ?? 0) > 0 && (
                   <div className={`mb-8 p-5 rounded-2xl border-2 flex items-start gap-4 ${
                     isDarkTheme
                       ? 'bg-red-950/30 border-red-900/50'
