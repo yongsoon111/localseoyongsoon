@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import {
   Star, MessageSquare, Image, RotateCcw, TrendingUp, CheckCircle2,
   History, ClipboardCheck, Search, Bot, Database, Loader2, Users,
-  Palette, Sun, Moon, Droplets, Leaf, Anchor
+  Palette, Sun, Moon, Droplets, Leaf, Anchor, Wrench
 } from 'lucide-react';
 import { BusinessInfo, AuditTab, ThemeType, ReviewAudit, TeleportResult } from '@/types';
 
@@ -245,6 +245,19 @@ export function AuditHeader({
             >
               <Bot className="w-3.5 h-3.5" />
               AI 진단 보고서
+            </button>
+            <button
+              onClick={() => onTabChange('TOOLS')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs font-bold border ${
+                activeTab === 'TOOLS'
+                  ? 'bg-teal-600 text-white border-teal-600 shadow-sm'
+                  : isDarkTheme
+                    ? 'bg-teal-900/30 text-teal-400 border-teal-900/50 hover:bg-teal-900/50'
+                    : 'bg-teal-50 text-teal-700 hover:bg-teal-100 border-teal-100'
+              }`}
+            >
+              <Wrench className="w-3.5 h-3.5" />
+              도구
             </button>
           </div>
         </div>

@@ -14,6 +14,8 @@ import { ReviewSection } from './ReviewSection';
 import { RankingSection } from './RankingSection';
 import { AIReportSection } from './AIReportSection';
 import { CompetitorSection } from './CompetitorSection';
+import { ReviewQRGenerator } from './ReviewQRGenerator';
+import { KeywordResearch } from './KeywordResearch';
 
 interface AuditReportProps {
   business: BusinessInfo;
@@ -474,6 +476,32 @@ export function AuditReport({
                 teleportKeyword={teleportKeyword}
                 theme={theme}
               />
+            </section>
+          )}
+
+          {activeTab === 'TOOLS' && (
+            <section id="tools">
+              <div className={`rounded-2xl border shadow-sm overflow-hidden ${
+                isDarkTheme ? 'bg-slate-900 border-slate-800' : 'bg-white border-gray-200'
+              }`}>
+                <div className={`p-6 border-b ${isDarkTheme ? 'border-slate-800' : 'border-gray-100'}`}>
+                  <h2 className={`text-lg font-bold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>
+                    마케팅 도구
+                  </h2>
+                  <p className={`text-sm mt-1 ${isDarkTheme ? 'text-slate-400' : 'text-gray-500'}`}>
+                    QR 코드 생성, 키워드 리서치 등 마케팅에 유용한 도구들
+                  </p>
+                </div>
+                <div className={`p-6 ${isDarkTheme ? 'bg-slate-800/30' : 'bg-gray-50/50'}`}>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <ReviewQRGenerator
+                      placeId={business.placeId}
+                      businessName={business.name}
+                    />
+                    <KeywordResearch />
+                  </div>
+                </div>
+              </div>
             </section>
           )}
         </div>

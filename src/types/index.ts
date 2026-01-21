@@ -10,7 +10,7 @@ export enum DiagnosticStatus {
 }
 
 // 탭 타입
-export type AuditTab = 'DIAGNOSTIC' | 'REVIEWS' | 'RANKING' | 'AI_REPORT' | 'COMPETITORS';
+export type AuditTab = 'DIAGNOSTIC' | 'REVIEWS' | 'RANKING' | 'AI_REPORT' | 'COMPETITORS' | 'TOOLS';
 
 // 테마 타입
 export type ThemeType = 'light' | 'dark' | 'blue' | 'green' | 'navy';
