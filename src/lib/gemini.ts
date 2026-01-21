@@ -584,7 +584,9 @@ ${JSON.stringify(negativeReviews.map(r => ({
               reviewTrend: [],
               negativePatterns: {
                 totalNegativeReviews: 0,
+                noResponseCount: 0,
                 topComplaints: [],
+                commonKeywords: [],
                 prioritizedImprovements: [],
               },
               sections: [],
@@ -617,7 +619,9 @@ ${JSON.stringify(negativeReviews.map(r => ({
       reviewTrend: [],
       negativePatterns: {
         totalNegativeReviews: 0,
+        noResponseCount: 0,
         topComplaints: [],
+        commonKeywords: [],
         prioritizedImprovements: [],
       },
       sections: [],
