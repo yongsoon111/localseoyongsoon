@@ -73,6 +73,15 @@ export interface ReportData {
   }>;
 }
 
+// 경쟁사 리뷰 타입
+export interface CompetitorReview {
+  author: string;
+  rating: number;
+  text: string;
+  date: string;
+  relativeTime: string;
+}
+
 // 경쟁사 분석용 타입 (디자인 확장)
 export interface CompetitorAnalysis {
   id: string;
@@ -83,6 +92,10 @@ export interface CompetitorAnalysis {
   distance: string;
   features: string[];
   isMe?: boolean;
+  placeId: string;
+  recentReviews?: CompetitorReview[];
+  negativeReviews?: CompetitorReview[];
+  negativeKeywords?: string[];
 }
 
 // ===== Existing Types =====

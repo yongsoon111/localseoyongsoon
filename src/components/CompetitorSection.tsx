@@ -3,10 +3,22 @@
 import React, { useState } from 'react';
 import {
   Users, Trophy, Star, Lightbulb,
-  ChevronRight, Info, Radar, AlertCircle, Search
+  ChevronRight, Info, Radar, AlertCircle, Search,
+  MessageSquare, X, ThumbsDown, Loader2, ExternalLink,
+  TrendingDown, AlertTriangle
 } from 'lucide-react';
-import { ThemeType, BusinessInfo, CompetitorAnalysis } from '@/types';
+import { ThemeType, BusinessInfo, CompetitorAnalysis, CompetitorReview } from '@/types';
 import { useAuditStore } from '@/stores/audit-store';
+
+interface CompetitorReviewData {
+  placeId: string;
+  name: string;
+  rating: number;
+  totalReviews: number;
+  reviews: CompetitorReview[];
+  negativeReviews: CompetitorReview[];
+  features: string[];
+}
 
 interface CompetitorSectionProps {
   business: BusinessInfo;
@@ -24,6 +36,46 @@ export function CompetitorSection({ business, theme }: CompetitorSectionProps) {
   const isDarkTheme = theme !== 'light';
   const [keyword, setKeyword] = useState('');
 
+  // 리뷰 관련 상태
+  const [selectedCompetitor, setSelectedCompetitor] = useState<CompetitorAnalysis | null>(null);
+  const [competitorReviews, setCompetitorReviews] = useState<CompetitorReviewData | null>(null);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsError, setReviewsError] = useState<string | null>(null);
+
+  // 경쟁사 리뷰 조회
+  const fetchCompetitorReviews = async (competitor: CompetitorAnalysis) => {
+    if (!competitor.placeId) {
+      setReviewsError('장소 ID가 없습니다');
+      return;
+    }
+
+    setSelectedCompetitor(competitor);
+    setReviewsLoading(true);
+    setReviewsError(null);
+
+    try {
+      const response = await fetch(`/api/competitor-reviews?placeId=${competitor.placeId}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || '리뷰 조회 실패');
+      }
+
+      setCompetitorReviews(data);
+    } catch (err) {
+      setReviewsError(err instanceof Error ? err.message : '리뷰 조회 중 오류 발생');
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  // 모달 닫기
+  const closeReviewModal = () => {
+    setSelectedCompetitor(null);
+    setCompetitorReviews(null);
+    setReviewsError(null);
+  };
+
   // 경쟁사 분석 실행
   const handleAnalyze = () => {
     if (keyword.trim()) {
@@ -40,7 +92,7 @@ export function CompetitorSection({ business, theme }: CompetitorSectionProps) {
 
   // 경쟁사 데이터 or 기본값
   const competitors: CompetitorAnalysis[] = competitorData?.competitors || [
-    { id: 'me', name: `${business.name} (나)`, rating: business.rating, reviews: business.reviewCount, photos: business.photos, distance: '-', features: ['정보없음'], isMe: true },
+    { id: 'me', name: `${business.name} (나)`, rating: business.rating, reviews: business.reviewCount, photos: business.photos, distance: '-', features: ['정보없음'], isMe: true, placeId: business.placeId },
   ];
 
   // 정렬: 리뷰 수 기준 내림차순
@@ -304,13 +356,13 @@ export function CompetitorSection({ business, theme }: CompetitorSectionProps) {
                   ? 'bg-slate-800/50 border-slate-800 text-slate-400'
                   : 'bg-slate-50 border-slate-100 text-slate-400'
               }`}>
-                <th className="px-8 py-4 text-center">순위</th>
-                <th className="px-8 py-4">비즈니스명</th>
-                <th className="px-8 py-4">평점</th>
-                <th className="px-8 py-4">리뷰</th>
-                <th className="px-8 py-4">사진</th>
-                <th className="px-8 py-4">거리</th>
-                <th className="px-8 py-4">특징</th>
+                <th className="px-6 py-4 text-center">순위</th>
+                <th className="px-6 py-4">비즈니스명</th>
+                <th className="px-6 py-4">평점</th>
+                <th className="px-6 py-4">리뷰</th>
+                <th className="px-6 py-4">거리</th>
+                <th className="px-6 py-4">특징</th>
+                <th className="px-6 py-4 text-center">리뷰 분석</th>
               </tr>
             </thead>
             <tbody className={`divide-y ${isDarkTheme ? 'divide-slate-800' : 'divide-slate-50'}`}>
@@ -323,7 +375,7 @@ export function CompetitorSection({ business, theme }: CompetitorSectionProps) {
                       : isDarkTheme ? 'hover:bg-slate-800/50' : 'hover:bg-slate-50/50'
                   }`}
                 >
-                  <td className="px-8 py-5 text-center">
+                  <td className="px-6 py-5 text-center">
                     <span className={`inline-flex items-center justify-center w-6 h-6 rounded-lg text-xs font-black ${
                       comp.isMe
                         ? 'bg-orange-600 text-white'
@@ -334,7 +386,7 @@ export function CompetitorSection({ business, theme }: CompetitorSectionProps) {
                       {comp.isMe ? '⭐' : idx + 1}
                     </span>
                   </td>
-                  <td className="px-8 py-5">
+                  <td className="px-6 py-5">
                     <div className="flex items-center gap-2">
                       <span className={`font-black ${
                         comp.isMe
@@ -354,7 +406,7 @@ export function CompetitorSection({ business, theme }: CompetitorSectionProps) {
                       )}
                     </div>
                   </td>
-                  <td className="px-8 py-5">
+                  <td className="px-6 py-5">
                     <div className="flex items-center gap-1">
                       <Star className="w-3 h-3 text-yellow-400 fill-current" />
                       <span className={`font-bold ${isDarkTheme ? 'text-slate-300' : 'text-slate-700'}`}>
@@ -362,16 +414,13 @@ export function CompetitorSection({ business, theme }: CompetitorSectionProps) {
                       </span>
                     </div>
                   </td>
-                  <td className={`px-8 py-5 font-bold ${isDarkTheme ? 'text-slate-400' : 'text-slate-600'}`}>
+                  <td className={`px-6 py-5 font-bold ${isDarkTheme ? 'text-slate-400' : 'text-slate-600'}`}>
                     {comp.reviews.toLocaleString()}
                   </td>
-                  <td className={`px-8 py-5 font-bold ${isDarkTheme ? 'text-slate-500' : 'text-slate-400'}`}>
-                    {comp.photos.toLocaleString()}
-                  </td>
-                  <td className={`px-8 py-5 font-bold ${isDarkTheme ? 'text-slate-500' : 'text-slate-400'}`}>
+                  <td className={`px-6 py-5 font-bold ${isDarkTheme ? 'text-slate-500' : 'text-slate-400'}`}>
                     {comp.distance}
                   </td>
-                  <td className="px-8 py-5">
+                  <td className="px-6 py-5">
                     <div className="flex flex-wrap gap-1">
                       {comp.features.map((f, i) => (
                         <span key={i} className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -383,6 +432,21 @@ export function CompetitorSection({ business, theme }: CompetitorSectionProps) {
                         </span>
                       ))}
                     </div>
+                  </td>
+                  <td className="px-6 py-5 text-center">
+                    {!comp.isMe && comp.placeId && (
+                      <button
+                        onClick={() => fetchCompetitorReviews(comp)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+                          isDarkTheme
+                            ? 'bg-blue-900/30 text-blue-400 hover:bg-blue-900/50 border border-blue-900/50'
+                            : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100'
+                        }`}
+                      >
+                        <MessageSquare className="w-3 h-3" />
+                        리뷰 보기
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -481,6 +545,213 @@ export function CompetitorSection({ business, theme }: CompetitorSectionProps) {
           </div>
         </div>
       </div>
+
+      {/* 경쟁사 리뷰 모달 */}
+      {selectedCompetitor && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={closeReviewModal}
+        >
+          <div
+            className={`w-full max-w-3xl max-h-[85vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col ${
+              isDarkTheme ? 'bg-slate-900 border border-slate-700' : 'bg-white border border-gray-200'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 모달 헤더 */}
+            <div className={`p-5 border-b flex items-center justify-between shrink-0 ${
+              isDarkTheme ? 'border-slate-700 bg-slate-800/50' : 'border-gray-100 bg-gray-50'
+            }`}>
+              <div>
+                <h3 className={`text-lg font-bold ${isDarkTheme ? 'text-white' : 'text-slate-900'}`}>
+                  {selectedCompetitor.name}
+                </h3>
+                <div className="flex items-center gap-3 mt-1">
+                  <div className="flex items-center gap-1">
+                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                    <span className={`text-sm font-bold ${isDarkTheme ? 'text-slate-300' : 'text-slate-700'}`}>
+                      {selectedCompetitor.rating}
+                    </span>
+                  </div>
+                  <span className={`text-sm ${isDarkTheme ? 'text-slate-500' : 'text-slate-400'}`}>
+                    리뷰 {selectedCompetitor.reviews.toLocaleString()}개
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={closeReviewModal}
+                className={`p-2 rounded-full transition-colors ${
+                  isDarkTheme ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-gray-200 text-gray-500'
+                }`}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* 모달 콘텐츠 */}
+            <div className="flex-1 overflow-y-auto">
+              {reviewsLoading ? (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
+                  <p className={`text-sm font-medium ${isDarkTheme ? 'text-slate-400' : 'text-slate-500'}`}>
+                    리뷰 데이터를 불러오는 중...
+                  </p>
+                </div>
+              ) : reviewsError ? (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
+                  <p className={`text-sm font-medium ${isDarkTheme ? 'text-red-400' : 'text-red-500'}`}>
+                    {reviewsError}
+                  </p>
+                </div>
+              ) : competitorReviews ? (
+                <div className="p-5 space-y-6">
+                  {/* 특징 및 서비스 */}
+                  {competitorReviews.features.length > 0 && competitorReviews.features[0] !== '정보없음' && (
+                    <div>
+                      <h4 className={`text-xs font-bold uppercase mb-2 ${isDarkTheme ? 'text-slate-500' : 'text-slate-400'}`}>
+                        제공 서비스
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {competitorReviews.features.map((f, i) => (
+                          <span key={i} className={`text-xs font-bold px-3 py-1 rounded-full ${
+                            isDarkTheme
+                              ? 'bg-blue-900/30 text-blue-400 border border-blue-900/50'
+                              : 'bg-blue-50 text-blue-600 border border-blue-100'
+                          }`}>
+                            {f}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 부정적 리뷰 요약 */}
+                  {competitorReviews.negativeReviews.length > 0 && (
+                    <div className={`p-4 rounded-xl border ${
+                      isDarkTheme ? 'bg-red-900/10 border-red-900/30' : 'bg-red-50/50 border-red-100'
+                    }`}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <AlertTriangle className="w-4 h-4 text-red-500" />
+                        <h4 className={`text-sm font-bold ${isDarkTheme ? 'text-red-400' : 'text-red-600'}`}>
+                          부정적 리뷰 ({competitorReviews.negativeReviews.length}건)
+                        </h4>
+                      </div>
+                      <p className={`text-xs mb-3 ${isDarkTheme ? 'text-slate-400' : 'text-slate-500'}`}>
+                        이 경쟁사의 약점을 파악하여 우리 비즈니스의 강점으로 활용하세요
+                      </p>
+                      <div className="space-y-2">
+                        {competitorReviews.negativeReviews.slice(0, 3).map((review, idx) => (
+                          <div key={idx} className={`p-3 rounded-lg ${
+                            isDarkTheme ? 'bg-slate-800/50' : 'bg-white'
+                          }`}>
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="flex items-center gap-0.5">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`w-3 h-3 ${
+                                      i < review.rating
+                                        ? 'text-yellow-400 fill-current'
+                                        : isDarkTheme ? 'text-slate-700' : 'text-gray-200'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              <span className={`text-[10px] ${isDarkTheme ? 'text-slate-500' : 'text-slate-400'}`}>
+                                {review.relativeTime}
+                              </span>
+                            </div>
+                            <p className={`text-xs leading-relaxed line-clamp-2 ${
+                              isDarkTheme ? 'text-slate-300' : 'text-slate-600'
+                            }`}>
+                              {review.text || '내용 없음'}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 전체 리뷰 목록 */}
+                  <div>
+                    <h4 className={`text-xs font-bold uppercase mb-3 ${isDarkTheme ? 'text-slate-500' : 'text-slate-400'}`}>
+                      <MessageSquare className="w-3.5 h-3.5 inline mr-1" />
+                      최근 리뷰 ({competitorReviews.reviews.length}건)
+                    </h4>
+                    <div className="space-y-3">
+                      {competitorReviews.reviews.map((review, idx) => (
+                        <div key={idx} className={`p-4 rounded-xl border ${
+                          review.rating <= 3
+                            ? isDarkTheme ? 'bg-red-900/10 border-red-900/30' : 'bg-red-50/30 border-red-100'
+                            : isDarkTheme ? 'bg-slate-800/50 border-slate-700' : 'bg-gray-50 border-gray-100'
+                        }`}>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-sm font-bold ${isDarkTheme ? 'text-slate-200' : 'text-slate-700'}`}>
+                                {review.author}
+                              </span>
+                              <div className="flex items-center gap-0.5">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`w-3 h-3 ${
+                                      i < review.rating
+                                        ? 'text-yellow-400 fill-current'
+                                        : isDarkTheme ? 'text-slate-700' : 'text-gray-200'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                            <span className={`text-[10px] ${isDarkTheme ? 'text-slate-500' : 'text-slate-400'}`}>
+                              {review.relativeTime}
+                            </span>
+                          </div>
+                          <p className={`text-sm leading-relaxed ${
+                            isDarkTheme ? 'text-slate-300' : 'text-slate-600'
+                          }`}>
+                            {review.text || '내용 없음'}
+                          </p>
+                          {review.rating <= 3 && (
+                            <div className="mt-2 flex items-center gap-1">
+                              <ThumbsDown className="w-3 h-3 text-red-500" />
+                              <span className={`text-[10px] font-bold ${
+                                isDarkTheme ? 'text-red-400' : 'text-red-500'
+                              }`}>
+                                부정적 리뷰
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            {/* 모달 푸터 */}
+            <div className={`p-4 border-t shrink-0 ${isDarkTheme ? 'border-slate-700' : 'border-gray-100'}`}>
+              <div className="flex items-center justify-between">
+                <p className={`text-xs ${isDarkTheme ? 'text-slate-500' : 'text-slate-400'}`}>
+                  Google Places API 제공 리뷰 (최대 5개)
+                </p>
+                <button
+                  onClick={closeReviewModal}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${
+                    isDarkTheme
+                      ? 'bg-slate-800 hover:bg-slate-700 text-white'
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
+                  }`}
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

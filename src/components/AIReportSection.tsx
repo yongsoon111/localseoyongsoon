@@ -254,34 +254,126 @@ export function AIReportSection({
                   <ListFilter className="w-6 h-6 text-red-600" />
                   부정 리뷰 패턴 분석 ({report.negativePatterns.totalNegativeReviews}개 리뷰 기준)
                 </h2>
-                <div className="space-y-4 mb-10">
-                  <div className="text-sm font-black text-slate-700 uppercase tracking-widest mb-4">반복 불만 TOP 5</div>
+
+                {/* 미답변 경고 */}
+                {report.negativePatterns.noResponseCount > 0 && (
+                  <div className={`mb-8 p-5 rounded-2xl border-2 flex items-start gap-4 ${
+                    isDarkTheme
+                      ? 'bg-red-950/30 border-red-900/50'
+                      : 'bg-red-50 border-red-200'
+                  }`}>
+                    <AlertTriangle className="w-6 h-6 text-red-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className={`font-black text-base ${isDarkTheme ? 'text-red-400' : 'text-red-600'}`}>
+                        미답변 부정 리뷰 {report.negativePatterns.noResponseCount}개 감지
+                      </p>
+                      <p className={`text-sm mt-1 ${isDarkTheme ? 'text-red-400/80' : 'text-red-500/80'}`}>
+                        부정 리뷰에 답변하지 않으면 신규 고객 이탈률이 최대 70% 증가합니다. 즉시 대응이 필요합니다.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 주요 키워드 */}
+                {report.negativePatterns.commonKeywords && report.negativePatterns.commonKeywords.length > 0 && (
+                  <div className="mb-8">
+                    <p className={`text-xs font-black uppercase tracking-widest mb-3 ${isDarkTheme ? 'text-slate-500' : 'text-slate-400'}`}>
+                      부정 리뷰 주요 키워드
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {report.negativePatterns.commonKeywords.map((keyword, i) => (
+                        <span key={i} className={`px-3 py-1.5 rounded-full text-sm font-bold ${
+                          isDarkTheme
+                            ? 'bg-red-900/30 text-red-400 border border-red-900/50'
+                            : 'bg-red-100 text-red-600 border border-red-200'
+                        }`}>
+                          {keyword}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-6 mb-10">
+                  <div className="text-sm font-black text-slate-700 dark:text-slate-400 uppercase tracking-widest mb-4">반복 불만 TOP {report.negativePatterns.topComplaints.length}</div>
                   {report.negativePatterns.topComplaints.map((comp, i) => (
-                    <div key={i} className={`p-6 rounded-2xl border relative group transition-all hover:shadow-lg ${
-                      isDarkTheme
-                        ? 'bg-slate-800/50 border-slate-700 hover:bg-slate-800'
-                        : 'bg-slate-50 border-slate-100 hover:bg-white'
+                    <div key={i} className={`p-6 rounded-2xl border-2 relative group transition-all hover:shadow-lg ${
+                      comp.severity === 'critical'
+                        ? isDarkTheme ? 'bg-red-950/20 border-red-900/50' : 'bg-red-50/50 border-red-200'
+                        : comp.severity === 'high'
+                          ? isDarkTheme ? 'bg-orange-950/20 border-orange-900/50' : 'bg-orange-50/50 border-orange-200'
+                          : isDarkTheme ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'
                     }`}>
-                      <div className="flex justify-between items-center mb-3">
-                        <div className="flex items-center gap-3">
-                          <span className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-black">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-start gap-4">
+                          <span className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black shrink-0 ${
+                            comp.severity === 'critical' ? 'bg-red-600 text-white' :
+                            comp.severity === 'high' ? 'bg-orange-500 text-white' :
+                            'bg-slate-900 text-white'
+                          }`}>
                             {i + 1}
                           </span>
-                          <h4 className={`font-black ${isDarkTheme ? 'text-slate-100' : 'text-slate-900'}`}>
-                            &quot;{comp.category}&quot;
-                          </h4>
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase ${
+                                isDarkTheme ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-600'
+                              }`}>
+                                {comp.category}
+                              </span>
+                              <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase ${
+                                comp.severity === 'critical'
+                                  ? 'bg-red-600 text-white'
+                                  : comp.severity === 'high'
+                                    ? 'bg-orange-500 text-white'
+                                    : isDarkTheme ? 'bg-slate-600 text-slate-300' : 'bg-slate-300 text-slate-600'
+                              }`}>
+                                {comp.severity === 'critical' ? '심각' : comp.severity === 'high' ? '높음' : '보통'}
+                              </span>
+                            </div>
+                            <h4 className={`font-black text-lg ${isDarkTheme ? 'text-slate-100' : 'text-slate-900'}`}>
+                              {comp.issue || comp.category}
+                            </h4>
+                          </div>
                         </div>
-                        <span className={`font-black text-sm ${isDarkTheme ? 'text-red-400' : 'text-red-600'}`}>
-                          {comp.count}회 ({comp.percentage})
+                        <span className={`font-black text-lg ${
+                          comp.severity === 'critical' ? 'text-red-500' :
+                          comp.severity === 'high' ? 'text-orange-500' :
+                          isDarkTheme ? 'text-slate-400' : 'text-slate-600'
+                        }`}>
+                          {comp.count}건 ({comp.percentage})
                         </span>
                       </div>
-                      <div className={`pl-11 border-l-2 ${isDarkTheme ? 'border-slate-700' : 'border-slate-300'}`}>
-                        <p className={`text-sm font-semibold italic leading-relaxed ${
-                          isDarkTheme ? 'text-slate-300' : 'text-slate-700'
-                        }`}>
-                          - &quot;{comp.quotes}&quot;
-                        </p>
+
+                      {/* 리뷰 인용 */}
+                      <div className={`pl-14 space-y-2 mb-4`}>
+                        {(Array.isArray(comp.quotes) ? comp.quotes : [comp.quotes]).filter(Boolean).map((quote, qi) => (
+                          <div key={qi} className={`p-3 rounded-xl border-l-4 ${
+                            isDarkTheme
+                              ? 'bg-slate-800/50 border-red-500/50'
+                              : 'bg-white border-red-400'
+                          }`}>
+                            <p className={`text-sm leading-relaxed italic ${
+                              isDarkTheme ? 'text-slate-300' : 'text-slate-700'
+                            }`}>
+                              &quot;{quote}&quot;
+                            </p>
+                          </div>
+                        ))}
                       </div>
+
+                      {/* 제안 액션 */}
+                      {comp.suggestedAction && (
+                        <div className={`pl-14`}>
+                          <div className={`p-3 rounded-xl flex items-start gap-2 ${
+                            isDarkTheme ? 'bg-blue-900/20' : 'bg-blue-50'
+                          }`}>
+                            <Zap className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                            <p className={`text-sm font-bold ${isDarkTheme ? 'text-blue-400' : 'text-blue-700'}`}>
+                              {comp.suggestedAction}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -293,8 +385,8 @@ export function AIReportSection({
                   <ul className="space-y-4">
                     {report.negativePatterns.prioritizedImprovements.map((item, i) => (
                       <li key={i} className="flex gap-4 text-base font-bold">
-                        <span className="text-blue-400 font-black">{i + 1}순위:</span>
-                        <span>{item.includes(':') ? item.split(':')[1].trim() : item}</span>
+                        <span className="text-blue-400 font-black shrink-0">{i + 1}순위:</span>
+                        <span>{item.includes(':') ? item.split(':').slice(1).join(':').trim() : item}</span>
                       </li>
                     ))}
                   </ul>

@@ -6,12 +6,14 @@ import { generateDiagnosticReport, DiagnosticReportInput } from '@/lib/gemini';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { businessName, checklist, reviews, rankingInfo } = body;
+    const { businessName, checklist, reviews, negativeReviews, reviewStats, rankingInfo } = body;
 
     console.log('[AI Report] 요청 수신:', {
       businessName,
       checklistCount: checklist?.length || 0,
       reviewsCount: reviews?.length || 0,
+      negativeReviewsCount: negativeReviews?.length || 0,
+      reviewStats,
       rankingInfo,
     });
 
@@ -32,6 +34,8 @@ export async function POST(req: NextRequest) {
       businessName,
       checklist || [],
       reviews as DiagnosticReportInput[] || [],
+      negativeReviews as DiagnosticReportInput[] || [],
+      reviewStats || null,
       rankingInfo || '순위 미확인'
     );
 

@@ -287,10 +287,21 @@ export interface DiagnosticReportInput {
   ownerResponse?: string;
 }
 
+export interface ReviewStats {
+  total: number;
+  avgRating: number;
+  responseRate: number;
+  ratingDistribution: Record<number, number>;
+  negativeCount: number;
+  noResponseNegative: number;
+}
+
 export async function generateDiagnosticReport(
   businessName: string,
   checklist: { category: string; item: string; status: string; currentValue: string; diagnosis?: string }[],
   reviews: DiagnosticReportInput[],
+  negativeReviews: DiagnosticReportInput[] = [],
+  reviewStats: ReviewStats | null = null,
   ranking: string = '순위 미확인'
 ): Promise<{
   auditor: string;
@@ -308,12 +319,17 @@ export async function generateDiagnosticReport(
   }>;
   negativePatterns: {
     totalNegativeReviews: number;
+    noResponseCount: number;
     topComplaints: Array<{
       category: string;
+      issue: string;
       count: number;
       percentage: string;
-      quotes: string;
+      severity: 'critical' | 'high' | 'medium';
+      quotes: string[];
+      suggestedAction: string;
     }>;
+    commonKeywords: string[];
     prioritizedImprovements: string[];
   };
   sections: Array<{
@@ -339,6 +355,7 @@ export async function generateDiagnosticReport(
     generationConfig: {
       maxOutputTokens: 32768,
       temperature: 0.7,
+      responseMimeType: 'application/json',
     },
   });
 
@@ -352,6 +369,15 @@ export async function generateDiagnosticReport(
 3. JSON 외 다른 텍스트 출력 금지
 4. { 로 시작해서 } 로 끝나야 함
 
+[부정 리뷰 분석 카테고리]
+- 서비스/응대: 불친절, 무례함, 직원 태도, 응대 불만
+- 대기/시간: 오래 기다림, 예약 문제, 늦은 서비스
+- 음식/품질: 맛 실망, 양 적음, 위생 문제, 온도 문제, 재료 품질
+- 가격: 비싸다, 가성비 낮음
+- 환경: 시끄러움, 좁음, 불편함, 주차 문제, 청결도
+- 예약/주문: 예약 오류, 주문 실수, 누락
+- 기타: 위 카테고리에 해당하지 않는 불만
+
 [출력 JSON 형식]
 {
   "auditor": "주식회사 블링크애드 대표 권순현",
@@ -359,17 +385,31 @@ export async function generateDiagnosticReport(
   "date": "${today}",
   "summary": {
     "headline": "핵심 문제점 한 줄 요약",
-    "impactDescription": "부정적 영향 서술"
+    "impactDescription": "부정적 영향 서술 (3-4줄)"
   },
   "reviewTrend": [
     {"period": "2024년 1월", "count": 10, "rating": 4.2, "responseRate": "50%"}
   ],
   "negativePatterns": {
-    "totalNegativeReviews": 5,
+    "totalNegativeReviews": 15,
+    "noResponseCount": 8,
     "topComplaints": [
-      {"category": "불만유형", "count": 3, "percentage": "60%", "quotes": "리뷰인용"}
+      {
+        "category": "서비스/응대",
+        "issue": "직원 불친절 및 응대 태도 문제",
+        "count": 5,
+        "percentage": "33%",
+        "severity": "critical",
+        "quotes": ["구체적인 리뷰 인용문 1", "구체적인 리뷰 인용문 2"],
+        "suggestedAction": "직원 서비스 교육 강화 및 CS 매뉴얼 수립 필요"
+      }
     ],
-    "prioritizedImprovements": ["1순위: 개선사항", "2순위: 개선사항", "3순위: 개선사항"]
+    "commonKeywords": ["불친절", "오래 기다림", "비싸다"],
+    "prioritizedImprovements": [
+      "1순위: 가장 시급한 개선사항 (근거와 함께)",
+      "2순위: 두번째 개선사항",
+      "3순위: 세번째 개선사항"
+    ]
   },
   "sections": [
     {
@@ -381,11 +421,11 @@ export async function generateDiagnosticReport(
     {"title": "알고리즘 신호", "items": []}
   ],
   "finalAssessment": {
-    "oneLineReview": "한 줄 평",
-    "warning": "경고 메시지"
+    "oneLineReview": "냉철한 현실 진단 한 줄 평",
+    "warning": "현재 상태 유지 시 발생할 구체적 위험 경고"
   },
   "actionPlan": [
-    {"title": "과제1", "description": "설명"},
+    {"title": "과제1", "description": "구체적 실행방안 및 기대효과"},
     {"title": "과제2", "description": "설명"},
     {"title": "과제3", "description": "설명"}
   ]
@@ -393,16 +433,66 @@ export async function generateDiagnosticReport(
 
 [분석 기준]
 - 감성적 비유 배제, 데이터 기반 냉철한 진단
-- "~함", "~임" 종결어미 사용`;
+- "~함", "~임" 종결어미 사용
+- 부정 리뷰는 반드시 원문을 인용하여 구체적으로 분석
+- severity는 언급 빈도와 비즈니스 영향도에 따라 결정 (critical > high > medium)
+- 미답변 부정 리뷰 수를 반드시 언급하고 위험성 강조`;
+
+  // 부정 리뷰 통계 계산
+  const negativeStats = {
+    total: negativeReviews.length,
+    noResponse: negativeReviews.filter(r => !r.ownerResponse).length,
+    byRating: {
+      one: negativeReviews.filter(r => r.rating === 1).length,
+      two: negativeReviews.filter(r => r.rating === 2).length,
+      three: negativeReviews.filter(r => r.rating === 3).length,
+    }
+  };
 
   const prompt = `[분석 대상]
 비즈니스: ${businessName}
 날짜: ${today}
-
-[데이터]
-체크리스트: ${JSON.stringify(checklist.map(c => ({ cat: c.category, item: c.item, val: c.currentValue, status: c.status })))}
-리뷰(최근20개): ${JSON.stringify(reviews.slice(0, 20).map(r => ({ r: r.rating, c: r.text?.slice(0, 100), d: r.date, hasReply: !!r.ownerResponse })))}
 순위: ${ranking}
+
+[리뷰 통계]
+${reviewStats ? `
+- 총 리뷰 수: ${reviewStats.total}개
+- 평균 평점: ${reviewStats.avgRating}
+- 응답률: ${reviewStats.responseRate}%
+- 부정 리뷰 수 (1-3점): ${reviewStats.negativeCount}개
+- 미답변 부정 리뷰: ${reviewStats.noResponseNegative}개
+- 평점 분포: 5점(${reviewStats.ratingDistribution[5] || 0}), 4점(${reviewStats.ratingDistribution[4] || 0}), 3점(${reviewStats.ratingDistribution[3] || 0}), 2점(${reviewStats.ratingDistribution[2] || 0}), 1점(${reviewStats.ratingDistribution[1] || 0})
+` : '리뷰 통계 없음'}
+
+[체크리스트 진단 항목]
+${JSON.stringify(checklist.map(c => ({ category: c.category, item: c.item, value: c.currentValue, status: c.status })))}
+
+[전체 리뷰 샘플 (최근 30개)]
+${JSON.stringify(reviews.slice(0, 30).map(r => ({
+  rating: r.rating,
+  text: r.text?.slice(0, 150),
+  date: r.date,
+  replied: !!r.ownerResponse
+})))}
+
+[부정 리뷰 전체 목록 - 핵심 분석 대상]
+총 ${negativeStats.total}개 (1점: ${negativeStats.byRating.one}개, 2점: ${negativeStats.byRating.two}개, 3점: ${negativeStats.byRating.three}개)
+미답변: ${negativeStats.noResponse}개
+
+${JSON.stringify(negativeReviews.map(r => ({
+  rating: r.rating,
+  text: r.text,  // 전체 텍스트
+  date: r.date,
+  author: r.author,
+  ownerResponse: r.ownerResponse ? '답변완료' : '미답변'
+})))}
+
+[분석 요청]
+1. 위 부정 리뷰들을 카테고리별로 분류하고 패턴을 분석해주세요
+2. 각 불만 유형별로 실제 리뷰 원문을 인용해주세요
+3. 가장 심각한 문제부터 우선순위를 매겨주세요
+4. 미답변 부정 리뷰의 위험성을 강조해주세요
+5. 구체적인 개선 방안을 제시해주세요
 
 위 데이터 기반으로 GBP 심층 진단 보고서를 JSON으로 출력하세요.`;
 
@@ -426,27 +516,89 @@ export async function generateDiagnosticReport(
     console.log('[Gemini] 응답 길이:', responseText.length);
     console.log('[Gemini] 응답 시작 부분:', responseText.substring(0, 200));
 
-    // JSON 파싱 시도 (마크다운 코드 블록 제거)
+    // JSON 파싱 시도 (마크다운 코드 블록 제거 및 JSON 추출 강화)
     let jsonStr = responseText.trim();
-    if (jsonStr.startsWith('```json')) {
-      jsonStr = jsonStr.slice(7);
-    }
-    if (jsonStr.startsWith('```')) {
-      jsonStr = jsonStr.slice(3);
-    }
-    if (jsonStr.endsWith('```')) {
-      jsonStr = jsonStr.slice(0, -3);
-    }
+
+    // 1. 마크다운 코드 블록 제거 (다양한 패턴)
+    jsonStr = jsonStr.replace(/^```json\s*/i, '');
+    jsonStr = jsonStr.replace(/^```\s*/i, '');
+    jsonStr = jsonStr.replace(/\s*```$/i, '');
     jsonStr = jsonStr.trim();
 
+    // 2. JSON 객체 추출 시도 (시작 { 와 마지막 } 사이)
+    const firstBrace = jsonStr.indexOf('{');
+    const lastBrace = jsonStr.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+    }
+
+    // 3. JSON 파싱 시도
     try {
       const parsed = JSON.parse(jsonStr);
       console.log('[Gemini] JSON 파싱 성공');
       return parsed;
     } catch (parseError) {
-      console.error('[Gemini] JSON 파싱 실패:', parseError);
-      console.error('[Gemini] 파싱 시도한 문자열:', jsonStr.substring(0, 500));
-      throw new Error('JSON 파싱 실패: ' + (parseError instanceof Error ? parseError.message : String(parseError)));
+      console.error('[Gemini] 첫 번째 JSON 파싱 실패:', parseError);
+      console.error('[Gemini] 파싱 시도한 문자열 (처음 500자):', jsonStr.substring(0, 500));
+      console.error('[Gemini] 파싱 시도한 문자열 (마지막 200자):', jsonStr.substring(jsonStr.length - 200));
+
+      // 4. 잘린 JSON 복구 시도 (누락된 괄호 추가)
+      let fixedJson = jsonStr;
+
+      // 열린 괄호와 닫힌 괄호 수 계산
+      const openBraces = (fixedJson.match(/\{/g) || []).length;
+      const closeBraces = (fixedJson.match(/\}/g) || []).length;
+      const openBrackets = (fixedJson.match(/\[/g) || []).length;
+      const closeBrackets = (fixedJson.match(/\]/g) || []).length;
+
+      // 부족한 닫힘 괄호 추가
+      for (let i = 0; i < openBrackets - closeBrackets; i++) {
+        fixedJson += ']';
+      }
+      for (let i = 0; i < openBraces - closeBraces; i++) {
+        fixedJson += '}';
+      }
+
+      try {
+        const parsed = JSON.parse(fixedJson);
+        console.log('[Gemini] 복구된 JSON 파싱 성공');
+        return parsed;
+      } catch (secondError) {
+        console.error('[Gemini] 복구된 JSON도 파싱 실패:', secondError);
+
+        // 5. 정규식으로 최소한의 필수 필드 추출 시도
+        try {
+          const headlineMatch = jsonStr.match(/"headline"\s*:\s*"([^"]+)"/);
+          const impactMatch = jsonStr.match(/"impactDescription"\s*:\s*"([^"]+)"/);
+
+          if (headlineMatch || impactMatch) {
+            console.log('[Gemini] 부분 데이터 추출 성공');
+            return {
+              auditor: '주식회사 블링크애드 대표 권순현',
+              targetBusiness: businessName,
+              date: today,
+              summary: {
+                headline: headlineMatch ? headlineMatch[1] : 'AI 분석이 불완전하게 완료되었습니다',
+                impactDescription: impactMatch ? impactMatch[1] : 'JSON 응답이 불완전하여 부분 데이터만 추출되었습니다.',
+              },
+              reviewTrend: [],
+              negativePatterns: {
+                totalNegativeReviews: 0,
+                topComplaints: [],
+                prioritizedImprovements: [],
+              },
+              sections: [],
+              finalAssessment: {
+                oneLineReview: '분석 결과 일부만 제공됨',
+                warning: '완전한 분석을 위해 다시 시도해주세요.',
+              },
+              actionPlan: [],
+            };
+          }
+        } catch {}
+
+        throw new Error('JSON 파싱 실패: AI 응답 형식이 올바르지 않습니다. 다시 시도해주세요.');
+      }
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

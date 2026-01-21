@@ -177,12 +177,48 @@ export const useAuditStore = create<AuditState>()(
       // 비즈니스 전환 시 호출 - 캐시된 데이터가 있으면 로드
       setCurrentBusiness: (businessId) => {
         const state = get();
+
+        // 같은 비즈니스면 스킵
+        if (state.currentBusinessId === businessId) {
+          console.log('[AuditStore] 같은 비즈니스, 스킵:', businessId);
+          return;
+        }
+
         // 현재 데이터 저장
         if (state.currentBusinessId && state.business) {
           state.saveCurrentToCache();
         }
-        // 새 비즈니스 데이터 로드
-        set({ currentBusinessId: businessId });
+
+        // 새 비즈니스로 전환 시 모든 비즈니스별 상태 초기화
+        console.log('[AuditStore] 비즈니스 전환:', state.currentBusinessId, '->', businessId);
+        set({
+          currentBusinessId: businessId,
+          // 비즈니스별 데이터 초기화
+          placeId: null,
+          business: null,
+          basicScore: 0,
+          reviewData: null,
+          reviewFetchedAt: null,
+          teleportResults: [],
+          teleportKeyword: '',
+          scrapedData: null,
+          scrapeError: null,
+          // 경쟁사 및 AI 보고서도 초기화
+          competitorData: null,
+          competitorError: null,
+          aiReport: null,
+          aiReportError: null,
+          // 로딩 상태 초기화
+          loading: false,
+          reviewLoading: false,
+          teleportLoading: false,
+          scrapeLoading: false,
+          competitorLoading: false,
+          aiReportLoading: false,
+          error: null,
+        });
+
+        // 캐시에서 새 비즈니스 데이터 로드 시도
         state.loadFromCache(businessId);
       },
 
@@ -595,14 +631,36 @@ export const useAuditStore = create<AuditState>()(
         set({ aiReportLoading: true, aiReportError: null });
 
         try {
-          // 리뷰 데이터 변환
-          const reviewsForAI = state.reviewData?.reviews.map(r => ({
+          // 전체 리뷰 (최대 100개)
+          const allReviews = state.reviewData?.reviews.slice(0, 100).map(r => ({
             author: r.author,
             rating: r.rating,
             text: r.text,
             date: r.date,
             ownerResponse: r.ownerResponse,
           })) || [];
+
+          // 부정 리뷰 (1-3점) 별도 분류 - 전체 내용 포함
+          const negativeReviews = state.reviewData?.reviews
+            .filter(r => r.rating <= 3)
+            .slice(0, 50)  // 부정 리뷰 최대 50개
+            .map(r => ({
+              author: r.author,
+              rating: r.rating,
+              text: r.text,  // 전체 텍스트 포함
+              date: r.date,
+              ownerResponse: r.ownerResponse,
+            })) || [];
+
+          // 리뷰 통계
+          const reviewStats = state.reviewData ? {
+            total: state.reviewData.reviews.length,
+            avgRating: state.reviewData.analysis.avgRating,
+            responseRate: state.reviewData.analysis.responseRate,
+            ratingDistribution: state.reviewData.analysis.ratingDistribution,
+            negativeCount: state.reviewData.reviews.filter(r => r.rating <= 3).length,
+            noResponseNegative: state.reviewData.reviews.filter(r => r.rating <= 3 && !r.ownerResponse).length,
+          } : null;
 
           // 순위 정보
           const rankingInfo = state.teleportResults[0]?.rank
@@ -616,7 +674,9 @@ export const useAuditStore = create<AuditState>()(
             body: JSON.stringify({
               businessName: business.name,
               checklist,
-              reviews: reviewsForAI,
+              reviews: allReviews,
+              negativeReviews,  // 부정 리뷰 별도 전달
+              reviewStats,      // 리뷰 통계 전달
               rankingInfo,
             }),
           });

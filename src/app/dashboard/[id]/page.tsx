@@ -35,6 +35,14 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
     }
   }, [authLoading, user, router]);
 
+  // id가 변경되면 loadedRef 초기화
+  useEffect(() => {
+    if (loadedRef.current !== id) {
+      console.log('[Dashboard] 새 비즈니스 ID 감지:', id, '(이전:', loadedRef.current, ')');
+      loadedRef.current = null;  // 새 비즈니스이므로 초기화
+    }
+  }, [id]);
+
   // 비즈니스 로드 - 이미 로드한 경우 스킵
   useEffect(() => {
     if (!user || !id) {

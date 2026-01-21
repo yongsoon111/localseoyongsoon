@@ -324,6 +324,57 @@ export function TeleportSearch({
 
           {mode === 'single' ? (
             <>
+              {selectedLocation && (
+                <p className="text-sm text-gray-500">
+                  선택 좌표: {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
+                </p>
+              )}
+              <Button
+                onClick={handleSingleCheck}
+                disabled={loading || !keyword || !selectedLocation}
+                className="w-full"
+              >
+                {loading ? '검색 중...' : '순위 확인'}
+              </Button>
+              {/* 단일 검색 결과 */}
+              {singleResult && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>검색 결과</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center mb-4">
+                      <p className="text-4xl font-bold" style={{ color: getRankColor(singleResult.rank) }}>
+                        {singleResult.rank ? `${singleResult.rank}위` : '순위권 외'}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        키워드: {keyword}
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">상위 경쟁사</h4>
+                      <div className="space-y-2">
+                        {singleResult.competitors.map((c) => (
+                          <div
+                            key={c.placeId}
+                            className={`flex justify-between items-center p-2 rounded ${
+                              c.placeId === targetPlaceId ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'
+                            }`}
+                          >
+                            <span>
+                              <span className="font-medium">{c.rank}위</span>
+                              <span className="ml-2">{c.name}</span>
+                            </span>
+                            <span className="text-sm text-gray-500">
+                              {c.rating > 0 && `★ ${c.rating.toFixed(1)}`}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
               <p className="text-sm text-gray-500">
                 지도에서 순위를 확인할 위치를 클릭하세요
               </p>
@@ -345,18 +396,6 @@ export function TeleportSearch({
                   </Button>
                 )}
               </div>
-              {selectedLocation && (
-                <p className="text-sm text-gray-500">
-                  선택 좌표: {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
-                </p>
-              )}
-              <Button
-                onClick={handleSingleCheck}
-                disabled={loading || !keyword || !selectedLocation}
-                className="w-full"
-              >
-                {loading ? '검색 중...' : '순위 확인'}
-              </Button>
             </>
           ) : (
             <>
@@ -397,29 +436,6 @@ export function TeleportSearch({
                   </div>
                 </div>
               </div>
-              <div ref={mapContainerRef} className="relative">
-                <MapPicker
-                  center={businessLocation}
-                  onLocationSelect={() => {}}
-                  markers={gridMarkers}
-                  clickable={false}
-                  size="large"
-                  showGrid={true}
-                  gridRadiusMiles={gridRadius}
-                  gridSize={gridSize}
-                  onMapStateChange={setMapState}
-                />
-                {gridResults.length > 0 && (
-                  <Button
-                    onClick={handleCaptureMap}
-                    size="sm"
-                    variant="outline"
-                    className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm"
-                  >
-                    📸 지도 캡처
-                  </Button>
-                )}
-              </div>
               <Button
                 onClick={handleGridSearch}
                 disabled={loading || !keyword}
@@ -451,50 +467,33 @@ export function TeleportSearch({
                   </div>
                 </div>
               )}
+              <div ref={mapContainerRef} className="relative">
+                <MapPicker
+                  center={businessLocation}
+                  onLocationSelect={() => {}}
+                  markers={gridMarkers}
+                  clickable={false}
+                  size="large"
+                  showGrid={true}
+                  gridRadiusMiles={gridRadius}
+                  gridSize={gridSize}
+                  onMapStateChange={setMapState}
+                />
+                {gridResults.length > 0 && (
+                  <Button
+                    onClick={handleCaptureMap}
+                    size="sm"
+                    variant="outline"
+                    className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm"
+                  >
+                    📸 지도 캡처
+                  </Button>
+                )}
+              </div>
             </>
           )}
         </CardContent>
       </Card>
-
-      {/* 단일 검색 결과 */}
-      {mode === 'single' && singleResult && (
-        <Card>
-          <CardHeader>
-            <CardTitle>검색 결과</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center mb-4">
-              <p className="text-4xl font-bold" style={{ color: getRankColor(singleResult.rank) }}>
-                {singleResult.rank ? `${singleResult.rank}위` : '순위권 외'}
-              </p>
-              <p className="text-sm text-gray-500">
-                키워드: {keyword}
-              </p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-2">상위 경쟁사</h4>
-              <div className="space-y-2">
-                {singleResult.competitors.map((c) => (
-                  <div
-                    key={c.placeId}
-                    className={`flex justify-between items-center p-2 rounded ${
-                      c.placeId === targetPlaceId ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'
-                    }`}
-                  >
-                    <span>
-                      <span className="font-medium">{c.rank}위</span>
-                      <span className="ml-2">{c.name}</span>
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      {c.rating > 0 && `★ ${c.rating.toFixed(1)}`}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
     </div>
   );
