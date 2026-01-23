@@ -81,9 +81,9 @@ export function RentInfoSection({ business }: RentInfoSectionProps) {
   // 만원 단위를 보기 좋게 변환
   const formatPrice = (price: number) => {
     if (price >= 10000) {
-      const억 = Math.floor(price / 10000);
-      const 만 = price % 10000;
-      return 만 > 0 ? `${억}억 ${만.toLocaleString()}만원` : `${억}억`;
+      const eok = Math.floor(price / 10000);
+      const man = price % 10000;
+      return man > 0 ? `${eok}억 ${man.toLocaleString()}만원` : `${eok}억`;
     }
     return `${price.toLocaleString()}만원`;
   };
