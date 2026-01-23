@@ -61,11 +61,18 @@ export async function GET(request: NextRequest) {
 
     const response = await fetch(apiUrl.toString(), {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
         'Accept': 'application/json, text/javascript, */*; q=0.01',
         'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
         'Referer': 'https://m.land.naver.com/',
+        'Origin': 'https://m.land.naver.com',
         'X-Requested-With': 'XMLHttpRequest',
+        'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-origin',
       },
     });
 
@@ -77,7 +84,28 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
-    const data = await response.json();
+    // 응답이 HTML인지 확인 (차단된 경우)
+    const contentType = response.headers.get('content-type') || '';
+    const responseText = await response.text();
+
+    if (contentType.includes('text/html') || responseText.startsWith('<!DOCTYPE') || responseText.startsWith('<html')) {
+      console.error('[NaverLand] Blocked - received HTML instead of JSON');
+      return NextResponse.json({
+        error: '네이버부동산 접근이 차단되었습니다. 잠시 후 다시 시도해주세요.',
+        blocked: true,
+      }, { status: 403 });
+    }
+
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error('[NaverLand] JSON parse error:', responseText.slice(0, 200));
+      return NextResponse.json({
+        error: '응답 파싱 실패',
+        rawResponse: responseText.slice(0, 200),
+      }, { status: 500 });
+    }
     console.log('[NaverLand] Response code:', data?.code, 'count:', data?.body?.length);
 
     if (data?.code !== 'success') {
