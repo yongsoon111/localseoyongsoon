@@ -91,6 +91,18 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
       if (auditData.history && auditData.history.length > 0) {
         const latestAudit = auditData.history[0];
         console.log('[Dashboard] DB에서 감사 기록 로드:', latestAudit.id);
+        console.log('[Dashboard] audit_data 내용:', {
+          hasBusiness: !!latestAudit.audit_data?.business,
+          hasReviewData: !!latestAudit.audit_data?.reviewData,
+          auditData: latestAudit.audit_data,
+        });
+
+        // audit_data.business가 없으면 DB 기록이 불완전한 것이므로 새 진단 실행
+        if (!latestAudit.audit_data?.business) {
+          console.log('[Dashboard] audit_data.business가 없음 - 새 진단 실행');
+          await fetchAudit(found.name);
+          return;
+        }
 
         // DB 데이터로 store 업데이트 (모든 필드 전달)
         const { loadAudit } = useAuditStore.getState();

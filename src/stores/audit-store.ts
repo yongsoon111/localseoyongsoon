@@ -304,8 +304,25 @@ export const useAuditStore = create<AuditState>()(
             loading: false,
           });
 
-          // 진단 완료 후 자동 저장
+          // 진단 완료 후 자동 저장 (캐시)
           get().saveCurrentToCache();
+
+          // DB에도 저장 (currentBusinessId가 있는 경우)
+          const currentState = get();
+          if (currentState.currentBusinessId && data.business) {
+            console.log('[AuditStore] fetchAudit - DB에 저장:', currentState.currentBusinessId);
+            fetch(`/api/businesses/${currentState.currentBusinessId}/audit`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                basicScore: data.score,
+                totalScore: data.score,
+                auditData: {
+                  business: data.business,
+                },
+              }),
+            }).catch(err => console.error('[AuditStore] DB 저장 실패:', err));
+          }
         } catch (error) {
           set({
             loading: false,
