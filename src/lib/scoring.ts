@@ -3,28 +3,45 @@
 import { BusinessInfo, Post } from '@/types';
 
 /**
- * Basic Audit 점수 계산
+ * Basic Audit 점수 계산 (최대 92점, 엄격한 기준)
  */
 export function calculateBasicScore(business: BusinessInfo): number {
   let score = 0;
 
-  // 필수 항목 (각 15점)
-  if (business.name) score += 15;
-  if (business.address) score += 15;
-  if (business.phone) score += 15;
-  if (business.category && business.category !== 'unknown') score += 15;
+  // 필수 항목 (각 12점, 최대 48점)
+  if (business.name) score += 12;
+  if (business.address) score += 12;
+  if (business.phone) score += 12;
+  if (business.category && business.category !== 'unknown') score += 12;
 
-  // 권장 항목 (각 10점)
-  if (business.website) score += 10;
-  if (business.openingHours.length > 0) score += 10;
-  if (business.photos >= 5) score += 10;
-  else if (business.photos > 0) score += 5;
+  // 웹사이트 (8점) - 공식 웹사이트만 만점
+  if (business.websiteType === 'official') score += 8;
+  else if (business.website) score += 4;
 
-  // 리뷰 (10점)
-  if (business.reviewCount >= 10) score += 10;
-  else if (business.reviewCount > 0) score += 5;
+  // 영업시간 (8점) - 7일 모두 있어야 만점
+  if (business.openingHours.length >= 7) score += 8;
+  else if (business.openingHours.length >= 5) score += 5;
+  else if (business.openingHours.length > 0) score += 2;
 
-  return Math.min(score, 100);
+  // 사진 (10점) - 50장 이상 만점
+  if (business.photos >= 50) score += 10;
+  else if (business.photos >= 20) score += 7;
+  else if (business.photos >= 10) score += 4;
+  else if (business.photos > 0) score += 2;
+
+  // 리뷰 수 (10점) - 100개 이상 만점
+  if (business.reviewCount >= 100) score += 10;
+  else if (business.reviewCount >= 50) score += 7;
+  else if (business.reviewCount >= 20) score += 4;
+  else if (business.reviewCount > 0) score += 2;
+
+  // 평점 (8점) - 4.7 이상 만점
+  if (business.rating >= 4.7) score += 8;
+  else if (business.rating >= 4.5) score += 6;
+  else if (business.rating >= 4.0) score += 4;
+  else if (business.rating >= 3.5) score += 2;
+
+  return Math.min(score, 92);
 }
 
 /**

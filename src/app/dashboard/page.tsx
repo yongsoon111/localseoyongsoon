@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { AddBusinessModal } from '@/components/AddBusinessModal';
 import { SavedBusiness, AuditHistoryItem } from '@/types';
-import { Search, Plus, TrendingUp, TrendingDown, Minus, ChevronRight, LayoutDashboard, Trash2, Loader2 } from 'lucide-react';
+import { Search, Plus, TrendingUp, TrendingDown, Minus, ChevronRight, LayoutDashboard, Trash2, Loader2, RefreshCw } from 'lucide-react';
 
 // 트렌드 계산 함수
 const getTrend = (business: SavedBusiness): 'up' | 'down' | 'stable' => {
@@ -144,6 +144,51 @@ export default function DashboardPage() {
     }
   };
 
+  const handleReaudit = async (e: React.MouseEvent, business: SavedBusiness) => {
+    e.stopPropagation();
+    if (auditingIds.has(business.id)) return;
+
+    setAuditingIds(prev => new Set(prev).add(business.id));
+
+    try {
+      const auditRes = await fetch(`/api/audit?keyword=${encodeURIComponent(business.name)}`);
+      const auditData = await auditRes.json();
+
+      if (auditData.error) {
+        throw new Error(auditData.error);
+      }
+
+      const saveRes = await fetch(`/api/businesses/${business.id}/audit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          basicScore: auditData.score,
+          totalScore: auditData.score,
+          auditData: { business: auditData.business },
+        }),
+      });
+
+      const saveData = await saveRes.json();
+      if (saveData.error) {
+        throw new Error(saveData.error);
+      }
+
+      setBusinesses(prev => prev.map(b =>
+        b.id === business.id
+          ? { ...b, latest_audit: { ...b.latest_audit, total_score: auditData.score, basic_score: auditData.score } as AuditHistoryItem }
+          : b
+      ));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '재진단 중 오류가 발생했습니다');
+    } finally {
+      setAuditingIds(prev => {
+        const next = new Set(prev);
+        next.delete(business.id);
+        return next;
+      });
+    }
+  };
+
   const filteredBusinesses = businesses.filter(biz =>
     biz.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     biz.category?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -239,11 +284,10 @@ export default function DashboardPage() {
               <table className="w-full text-left">
                 <thead>
                   <tr className="bg-slate-50/50 text-slate-400 text-[11px] font-bold uppercase tracking-wider border-b border-slate-100">
-                    <th className="px-8 py-5">가게 정보</th>
-                    <th className="px-8 py-5">현재 점수</th>
-                    <th className="px-8 py-5 hidden lg:table-cell">히스토리 트래킹</th>
-                    <th className="px-8 py-5">등급</th>
-                    <th className="px-8 py-5 text-right">상세</th>
+                    <th className="px-4 py-3">가게 정보</th>
+                    <th className="px-4 py-3">현재 점수</th>
+                    <th className="px-4 py-3">등급</th>
+                    <th className="px-4 py-3 text-right">작업</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -259,23 +303,23 @@ export default function DashboardPage() {
                         onClick={() => router.push(`/dashboard/${biz.id}`)}
                         className="hover:bg-blue-50/30 cursor-pointer transition-colors group"
                       >
-                        <td className="px-8 py-6">
+                        <td className="px-4 py-3">
                           <div>
-                            <div className="font-bold text-slate-900 text-base line-clamp-1">{biz.name}</div>
-                            <div className="text-xs text-slate-400 mt-0.5">
+                            <div className="font-bold text-slate-900 text-sm line-clamp-1">{biz.name}</div>
+                            <div className="text-xs text-slate-400 mt-0.5 line-clamp-1">
                               {biz.category || '미분류'} • {biz.address || '주소 없음'}
                             </div>
                           </div>
                         </td>
-                        <td className="px-8 py-6">
+                        <td className="px-4 py-3">
                           {isAuditing ? (
                             <div className="flex items-center gap-2">
-                              <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
-                              <span className="text-sm text-slate-500">진단 중...</span>
+                              <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
+                              <span className="text-xs text-slate-500">진단 중...</span>
                             </div>
                           ) : (
-                            <div className="flex items-center gap-3">
-                              <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="flex items-center gap-2">
+                              <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                 <div
                                   className={`h-full rounded-full transition-all ${
                                     (score || 0) >= 80 ? 'bg-blue-500' : (score || 0) >= 60 ? 'bg-green-500' : 'bg-orange-500'
@@ -283,27 +327,14 @@ export default function DashboardPage() {
                                   style={{ width: `${score || 0}%` }}
                                 />
                               </div>
-                              <div className="flex flex-col">
-                                <span className="font-bold text-slate-900 text-lg tabular-nums leading-none">
-                                  {score ?? '-'}
-                                </span>
-                                <div className={`flex items-center gap-0.5 text-[10px] font-bold ${
-                                  trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-600' : 'text-slate-400'
-                                }`}>
-                                  {trend === 'up' ? <TrendingUp className="w-3 h-3" /> : trend === 'down' ? <TrendingDown className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
-                                  {trend === 'up' ? '상승' : trend === 'down' ? '하락' : '유지'}
-                                </div>
-                              </div>
+                              <span className="font-bold text-slate-900 text-sm tabular-nums">
+                                {score ?? '-'}
+                              </span>
                             </div>
                           )}
                         </td>
-                        <td className="px-8 py-6 hidden lg:table-cell">
-                          <span className="text-slate-600 font-medium">
-                            {isAuditing ? '-' : (score ? `${score}점` : '-')}
-                          </span>
-                        </td>
-                        <td className="px-8 py-6">
-                          <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                             isAuditing ? 'bg-slate-100 text-slate-400' :
                             grade === 'A+' ? 'bg-blue-100 text-blue-700' :
                             grade === 'A' ? 'bg-green-100 text-green-700' :
@@ -313,15 +344,24 @@ export default function DashboardPage() {
                             {isAuditing ? '...' : grade}
                           </span>
                         </td>
-                        <td className="px-8 py-6 text-right">
-                          <div className="flex items-center justify-end gap-2">
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={(e) => handleReaudit(e, biz)}
+                              disabled={isAuditing}
+                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all disabled:opacity-50"
+                              title="재진단"
+                            >
+                              <RefreshCw className={`w-4 h-4 ${isAuditing ? 'animate-spin' : ''}`} />
+                            </button>
                             <button
                               onClick={(e) => handleDeleteBusiness(e, biz.id)}
-                              className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                              className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                              title="삭제"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
-                            <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-colors" />
                           </div>
                         </td>
                       </tr>

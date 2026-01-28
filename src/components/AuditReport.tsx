@@ -395,7 +395,7 @@ export function AuditReport({
         <div className={`no-print py-3 border-b backdrop-blur-sm ${
           isDarkTheme ? 'bg-black/40 border-slate-800' : 'bg-white/50 border-slate-100'
         }`}>
-          <div className="container mx-auto max-w-6xl px-4 flex justify-between items-center">
+          <div className="container mx-auto max-w-7xl px-4 flex justify-between items-center">
             <button
               onClick={onBack}
               className={`flex items-center gap-2 font-bold text-sm transition-colors ${
@@ -424,7 +424,7 @@ export function AuditReport({
       />
 
       {/* Main Content */}
-      <main className="flex-1 container mx-auto px-4 py-8 max-w-6xl">
+      <main className="flex-1 container mx-auto px-4 py-8 max-w-7xl">
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
           {activeTab === 'DIAGNOSTIC' && (
             <section id="checklist">

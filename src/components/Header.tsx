@@ -42,7 +42,7 @@ export function Header({ onReset, showReset, showBackLink }: HeaderProps) {
 
   return (
     <header className="bg-card border-b border-border">
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-4 py-2 max-w-7xl">
         <div className="flex items-center justify-between">
           {showBackLink ? (
             <Link href="/dashboard" className="text-primary hover:underline text-sm flex items-center gap-1">

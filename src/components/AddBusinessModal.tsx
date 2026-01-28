@@ -19,27 +19,43 @@ export function AddBusinessModal({ onClose, onAdd }: AddBusinessModalProps) {
   const extractSearchKeyword = (inputUrl: string): string => {
     const trimmed = inputUrl.trim();
 
+    // Place ID인 경우
     if (trimmed.startsWith('ChIJ')) {
       return trimmed;
     }
 
-    if (!trimmed.startsWith('http')) {
+    // URL인지 확인 (http로 시작하거나 google.com/maps 포함)
+    const isUrl = trimmed.startsWith('http') ||
+                  trimmed.includes('google.com/maps') ||
+                  trimmed.includes('maps.google.com');
+
+    if (!isUrl) {
       return trimmed;
     }
 
+    // place/비즈니스명 패턴
     const placeMatch = trimmed.match(/place\/([^/@?]+)/);
     if (placeMatch) {
       return decodeURIComponent(placeMatch[1].replace(/\+/g, ' '));
     }
 
+    // search/검색어 패턴
     const searchMatch = trimmed.match(/search\/([^/@?]+)/);
     if (searchMatch) {
       return decodeURIComponent(searchMatch[1].replace(/\+/g, ' '));
     }
 
+    // q= 파라미터 (URL 어디에든 있을 수 있음)
     const qMatch = trimmed.match(/[?&]q=([^&]+)/);
     if (qMatch) {
       return decodeURIComponent(qMatch[1].replace(/\+/g, ' '));
+    }
+
+    // URL이지만 키워드를 추출할 수 없는 경우, URL 자체가 아닌 빈 문자열 반환하지 않도록
+    // 마지막으로 output=search&q= 패턴 시도
+    const outputSearchMatch = trimmed.match(/output=search&q=([^&]+)/);
+    if (outputSearchMatch) {
+      return decodeURIComponent(outputSearchMatch[1].replace(/\+/g, ' '));
     }
 
     return trimmed;

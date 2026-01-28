@@ -67,62 +67,62 @@ export function AuditHeader({
 
   return (
     <header className="glass-header border-b no-print">
-      <div className="container mx-auto px-0 py-4 max-w-3xl">
-        {/* Upper Row */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
-          <div className="flex items-start gap-4">
-            <div className={`w-16 h-16 rounded-2xl flex flex-col items-center justify-center shadow-lg shrink-0 border ${
-              isDarkTheme
-                ? 'bg-slate-800 border-slate-700 text-white'
-                : 'bg-slate-900 border-slate-700/50 text-white'
-            }`}>
-              <span className="text-[10px] font-bold text-slate-400 uppercase">Score</span>
-              <span className="text-2xl font-black">{basicScore}</span>
+      <div className="container mx-auto px-4 py-2 max-w-7xl">
+        {/* Upper Row - Business Info */}
+        <div className="flex items-start gap-3 mb-2">
+          <div className={`w-16 h-16 rounded-2xl flex flex-col items-center justify-center shadow-lg shrink-0 border ${
+            isDarkTheme
+              ? 'bg-slate-800 border-slate-700 text-white'
+              : 'bg-slate-900 border-slate-700/50 text-white'
+          }`}>
+            <span className="text-[10px] font-bold text-slate-400 uppercase">Score</span>
+            <span className="text-2xl font-black">{basicScore}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl font-bold tracking-tight leading-tight" style={{ color: 'var(--text-header)' }}>
+                {business.name}
+              </h1>
+              <span className={`px-2 py-1 text-xs font-bold rounded-full whitespace-nowrap ${
+                gradeInfo.grade === 'A+'
+                  ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
+                  : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+              }`}>
+                {gradeInfo.grade} {gradeInfo.grade === 'A+' && gradeInfo.label}
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold tracking-tight leading-tight" style={{ color: 'var(--text-header)' }}>
-                  {business.name}
-                </h1>
-                <span className={`px-2 py-1 text-xs font-bold rounded-full whitespace-nowrap ${
-                  gradeInfo.grade === 'A+'
-                    ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
-                    : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
-                }`}>
-                  {gradeInfo.grade} {gradeInfo.grade === 'A+' && gradeInfo.label}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 mt-1">
-                <p className="text-sm font-medium" style={{ color: 'var(--text-header-sub)' }}>
-                  {business.category} • {business.address}
-                </p>
-                <div className="h-3 w-px mx-1 bg-slate-500/30" />
-                <div className={`flex items-center gap-1 text-xs font-bold ${
-                  (business.scoreHistory?.[business.scoreHistory.length - 1]?.score || basicScore) >= (business.scoreHistory?.[business.scoreHistory.length - 2]?.score || basicScore)
-                    ? 'text-green-500'
-                    : 'text-red-500'
-                }`}>
-                  <History className="w-3 h-3" />
-                  {business.scoreHistory && business.scoreHistory.length > 1 ? (
-                    <>
-                      전주 대비 {(() => {
-                        const current = business.scoreHistory[business.scoreHistory.length - 1]?.score || basicScore;
-                        const prev = business.scoreHistory[business.scoreHistory.length - 2]?.score || basicScore;
-                        const diff = current - prev;
-                        return diff >= 0 ? `+${diff}` : diff;
-                      })()}점 {(business.scoreHistory[business.scoreHistory.length - 1]?.score || basicScore) >= (business.scoreHistory[business.scoreHistory.length - 2]?.score || basicScore) ? '상승' : '하락'}
-                    </>
-                  ) : (
-                    <>신규 진단</>
-                  )}
-                </div>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <p className="text-sm font-medium" style={{ color: 'var(--text-header-sub)' }}>
+                {business.category} • {business.address}
+              </p>
+              <div className="h-3 w-px mx-1 bg-slate-500/30" />
+              <div className={`flex items-center gap-1 text-xs font-bold ${
+                (business.scoreHistory?.[business.scoreHistory.length - 1]?.score || basicScore) >= (business.scoreHistory?.[business.scoreHistory.length - 2]?.score || basicScore)
+                  ? 'text-green-500'
+                  : 'text-red-500'
+              }`}>
+                <History className="w-3 h-3" />
+                {business.scoreHistory && business.scoreHistory.length > 1 ? (
+                  <>
+                    전주 대비 {(() => {
+                      const current = business.scoreHistory[business.scoreHistory.length - 1]?.score || basicScore;
+                      const prev = business.scoreHistory[business.scoreHistory.length - 2]?.score || basicScore;
+                      const diff = current - prev;
+                      return diff >= 0 ? `+${diff}` : diff;
+                    })()}점 {(business.scoreHistory[business.scoreHistory.length - 1]?.score || basicScore) >= (business.scoreHistory[business.scoreHistory.length - 2]?.score || basicScore) ? '상승' : '하락'}
+                  </>
+                ) : (
+                  <>신규 진단</>
+                )}
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="flex flex-wrap items-center gap-2 self-start lg:self-center">
+        {/* Tab Row */}
+        <div className="flex items-center gap-2 mb-3 overflow-x-auto pb-1">
             {/* Theme Selector */}
-            <div className="relative mr-2">
+            <div className="relative mr-2 shrink-0">
               <button
                 onClick={() => setShowThemes(!showThemes)}
                 className={`p-2.5 rounded-xl transition-all flex items-center gap-2 border ${
@@ -161,12 +161,12 @@ export function AuditHeader({
             </div>
 
             {/* Nav Tabs */}
-            <div className={`flex items-center gap-1 p-1 rounded-xl border ${
+            <div className={`flex items-center gap-1 p-1 rounded-xl border shrink-0 ${
               isDarkTheme ? 'bg-slate-900/50 border-slate-800' : 'bg-slate-100/50 border-slate-200/60'
             }`}>
               <button
                 onClick={() => onTabChange('DIAGNOSTIC')}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs font-bold ${
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs font-bold whitespace-nowrap ${
                   activeTab === 'DIAGNOSTIC'
                     ? 'bg-blue-600 text-white shadow-sm'
                     : isDarkTheme ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
@@ -196,7 +196,7 @@ export function AuditHeader({
 
             <button
               onClick={() => onTabChange('REVIEWS')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs font-bold border ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs font-bold border shrink-0 whitespace-nowrap ${
                 activeTab === 'REVIEWS'
                   ? 'bg-green-600 text-white border-green-600 shadow-sm'
                   : isDarkTheme
@@ -209,7 +209,7 @@ export function AuditHeader({
             </button>
             <button
               onClick={() => onTabChange('RANKING')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs font-bold border ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs font-bold border shrink-0 whitespace-nowrap ${
                 activeTab === 'RANKING'
                   ? 'bg-red-600 text-white border-red-600 shadow-sm'
                   : isDarkTheme
@@ -222,7 +222,7 @@ export function AuditHeader({
             </button>
             <button
               onClick={() => onTabChange('COMPETITORS')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs font-bold border ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs font-bold border shrink-0 whitespace-nowrap ${
                 activeTab === 'COMPETITORS'
                   ? 'bg-orange-600 text-white border-orange-600 shadow-sm'
                   : isDarkTheme
@@ -235,7 +235,7 @@ export function AuditHeader({
             </button>
             <button
               onClick={() => onTabChange('AI_REPORT')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs font-bold border ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs font-bold border shrink-0 whitespace-nowrap ${
                 activeTab === 'AI_REPORT'
                   ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
                   : isDarkTheme
@@ -248,7 +248,7 @@ export function AuditHeader({
             </button>
             <button
               onClick={() => onTabChange('TOOLS')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs font-bold border ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs font-bold border shrink-0 whitespace-nowrap ${
                 activeTab === 'TOOLS'
                   ? 'bg-teal-600 text-white border-teal-600 shadow-sm'
                   : isDarkTheme
@@ -265,7 +265,7 @@ export function AuditHeader({
                   const naverLandUrl = `https://m.land.naver.com/map/${business.location!.lat}:${business.location!.lng}:17:0/SG/B2#mapList`;
                   window.open(naverLandUrl, '_blank');
                 }}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs font-bold border ${
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs font-bold border shrink-0 whitespace-nowrap ${
                   isDarkTheme
                     ? 'bg-green-900/30 text-green-400 border-green-900/50 hover:bg-green-900/50'
                     : 'bg-green-50 text-green-700 hover:bg-green-100 border-green-100'
@@ -276,11 +276,10 @@ export function AuditHeader({
                 <ExternalLink className="w-3 h-3" />
               </button>
             )}
-          </div>
         </div>
 
         {/* Lower Row: Metrics Grid */}
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
           {metrics.map((m, idx) => (
             <div key={idx} className={`flex flex-col items-center p-2 rounded-xl border transition-all hover:shadow-sm ${
               isDarkTheme
