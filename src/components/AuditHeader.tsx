@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import {
   Star, MessageSquare, Image, RotateCcw, TrendingUp, CheckCircle2,
   History, ClipboardCheck, Search, Bot, Database, Loader2, Users,
-  Palette, Sun, Moon, Droplets, Leaf, Anchor, Wrench
+  Palette, Sun, Moon, Droplets, Leaf, Anchor, Wrench, Building2, ExternalLink
 } from 'lucide-react';
 import { BusinessInfo, AuditTab, ThemeType, ReviewAudit, TeleportResult } from '@/types';
 
@@ -259,6 +259,23 @@ export function AuditHeader({
               <Wrench className="w-3.5 h-3.5" />
               도구
             </button>
+            {business.location?.lat && business.location?.lng && (
+              <button
+                onClick={() => {
+                  const naverLandUrl = `https://m.land.naver.com/map/${business.location!.lat}:${business.location!.lng}:17:0/SG/B2#mapList`;
+                  window.open(naverLandUrl, '_blank');
+                }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs font-bold border ${
+                  isDarkTheme
+                    ? 'bg-green-900/30 text-green-400 border-green-900/50 hover:bg-green-900/50'
+                    : 'bg-green-50 text-green-700 hover:bg-green-100 border-green-100'
+                }`}
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                네이버 부동산
+                <ExternalLink className="w-3 h-3" />
+              </button>
+            )}
           </div>
         </div>
 
