@@ -46,7 +46,15 @@ export async function POST(req: NextRequest) {
       ]),
     });
 
-    const data = await response.json();
+    const responseText = await response.text();
+
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch {
+      console.error('[Keywords API] Invalid JSON response:', responseText.slice(0, 200));
+      return NextResponse.json({ error: 'API 응답 파싱 오류' }, { status: 500 });
+    }
 
     if (data.status_code !== 20000) {
       console.error('[Keywords API] Error:', data);
