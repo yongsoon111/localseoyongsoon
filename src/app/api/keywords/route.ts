@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
           language_code: 'ko',
           include_seed_keyword: true,
           sort_by: 'search_volume',
+          search_partners: true, // Google + 파트너 사이트(유튜브, 지도 등) 검색량 포함
         },
       ]),
     });
