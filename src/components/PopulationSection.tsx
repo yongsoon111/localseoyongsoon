@@ -1,203 +1,46 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Users, MapPin, Clock, TrendingUp, Loader2, BarChart3, RefreshCw, Navigation } from 'lucide-react';
+import React from 'react';
+import { Users, ExternalLink, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BusinessInfo } from '@/types';
-
-interface AgeGroup {
-  label: string;
-  male: number;
-  female: number;
-  total: number;
-}
-
-interface PopulationData {
-  date: string;
-  hour: string;
-  dongCode: string;
-  dongName: string;
-  totalPopulation: number;
-  malePopulation: number;
-  femalePopulation: number;
-  ageGroups: AgeGroup[];
-}
-
-interface HourlyData {
-  hour: number;
-  population: number;
-}
-
-interface HourlyResponse {
-  district: string;
-  dong: string;
-  date: string;
-  hourlyData: HourlyData[];
-  peakHour: HourlyData;
-}
-
-interface GeocodeResult {
-  sido: string;
-  sigungu: string;
-  dong: string;
-  fullAddress: string;
-  dongCode: string;
-}
 
 interface PopulationSectionProps {
   business: BusinessInfo;
 }
 
 export function PopulationSection({ business }: PopulationSectionProps) {
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<PopulationData | null>(null);
-  const [hourlyData, setHourlyData] = useState<HourlyResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [geoInfo, setGeoInfo] = useState<GeocodeResult | null>(null);
+  const lat = business?.location?.lat;
+  const lng = business?.location?.lng;
+  const hasCoordinates = lat && lng;
 
-  // 비즈니스 좌표로 행정동 자동 감지 및 유동인구 조회
-  useEffect(() => {
-    if (!business?.location?.lat || !business?.location?.lng) {
-      setLoading(false);
-      setError('위치 좌표 정보가 없습니다');
-      return;
-    }
+  // 외부 유동인구 지도 서비스 링크들
+  const getPopulationLinks = () => {
+    if (!hasCoordinates) return [];
 
-    fetchPopulationByCoordinates(business.location.lat, business.location.lng);
-  }, [business?.location?.lat, business?.location?.lng]);
-
-  const fetchPopulationByCoordinates = async (lat: number, lng: number) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      // 1. 좌표 → 행정동 변환
-      const geoRes = await fetch(`/api/geocode?lat=${lat}&lng=${lng}`);
-      const geoData = await geoRes.json();
-
-      if (geoData.error) {
-        setError(geoData.error);
-        setLoading(false);
-        return;
-      }
-
-      setGeoInfo(geoData);
-
-      // 2. 유동인구 데이터 조회 (dongCode로 직접 조회)
-      const popRes = await fetch('/api/population', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          dongCode: geoData.dongCode,  // 8자리 행정동 코드로 직접 조회
-          dong: geoData.dong,
-        }),
-      });
-      const popData = await popRes.json();
-
-      if (popData.error) {
-        setError(`${geoData.sigungu} ${geoData.dong}의 유동인구 데이터를 불러올 수 없습니다`);
-        setLoading(false);
-        return;
-      }
-
-      setData(popData);
-
-      // 3. 시간대별 데이터 조회 (dongCode로 직접 조회)
-      const hourlyRes = await fetch(
-        `/api/population?dongCode=${encodeURIComponent(geoData.dongCode)}`
-      );
-      const hourlyResult = await hourlyRes.json();
-
-      if (!hourlyResult.error) {
-        setHourlyData(hourlyResult);
-      }
-    } catch (err) {
-      console.error('유동인구 조회 오류:', err);
-      setError('유동인구 조회 중 오류가 발생했습니다');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRefresh = () => {
-    if (business?.location?.lat && business?.location?.lng) {
-      fetchPopulationByCoordinates(business.location.lat, business.location.lng);
-    }
-  };
-
-  const formatNumber = (num: number) => num.toLocaleString('ko-KR');
-
-  const formatDate = (dateStr: string) => {
-    if (!dateStr || dateStr.length !== 8) return dateStr;
-    return `${dateStr.slice(0, 4)}.${dateStr.slice(4, 6)}.${dateStr.slice(6, 8)}`;
-  };
-
-  // 연령대 그룹화
-  const getGroupedAgeData = () => {
-    if (!data?.ageGroups) return [];
-
-    const grouped = [
-      { label: '10대 이하', total: 0, male: 0, female: 0 },
-      { label: '20대', total: 0, male: 0, female: 0 },
-      { label: '30대', total: 0, male: 0, female: 0 },
-      { label: '40대', total: 0, male: 0, female: 0 },
-      { label: '50대', total: 0, male: 0, female: 0 },
-      { label: '60대 이상', total: 0, male: 0, female: 0 },
+    return [
+      {
+        name: '서울 생활인구 지도',
+        description: '서울시 실시간 유동인구 (KT 기반)',
+        url: 'https://data.seoul.go.kr/dataVisual/seoul/seoulLivingPopulation.do',
+        color: 'bg-blue-500 hover:bg-blue-600',
+      },
+      {
+        name: 'SGIS 통계지도',
+        description: '통계청 인구/상권 분석',
+        url: `https://sgis.kostat.go.kr/view/map/interactiveMap/main?coords=${lng},${lat}`,
+        color: 'bg-emerald-500 hover:bg-emerald-600',
+      },
+      {
+        name: '소상공인 상권정보',
+        description: '상권분석 및 유동인구',
+        url: 'https://sg.sbiz.or.kr/godo/index.sg',
+        color: 'bg-orange-500 hover:bg-orange-600',
+      },
     ];
-
-    data.ageGroups.forEach(ag => {
-      if (ag.label.includes('0-9') || ag.label.includes('10-14') || ag.label.includes('15-19')) {
-        grouped[0].total += ag.total;
-        grouped[0].male += ag.male;
-        grouped[0].female += ag.female;
-      } else if (ag.label.includes('20-24') || ag.label.includes('25-29')) {
-        grouped[1].total += ag.total;
-        grouped[1].male += ag.male;
-        grouped[1].female += ag.female;
-      } else if (ag.label.includes('30-34') || ag.label.includes('35-39')) {
-        grouped[2].total += ag.total;
-        grouped[2].male += ag.male;
-        grouped[2].female += ag.female;
-      } else if (ag.label.includes('40-44') || ag.label.includes('45-49')) {
-        grouped[3].total += ag.total;
-        grouped[3].male += ag.male;
-        grouped[3].female += ag.female;
-      } else if (ag.label.includes('50-54') || ag.label.includes('55-59')) {
-        grouped[4].total += ag.total;
-        grouped[4].male += ag.male;
-        grouped[4].female += ag.female;
-      } else {
-        grouped[5].total += ag.total;
-        grouped[5].male += ag.male;
-        grouped[5].female += ag.female;
-      }
-    });
-
-    return grouped;
   };
 
-  const groupedAge = getGroupedAgeData();
-  const maxAgeTotal = Math.max(...groupedAge.map(g => g.total), 1);
-
-  // 로딩 중
-  if (loading) {
-    return (
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl">
-            <Users className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-          </div>
-          <div>
-            <h3 className="font-bold text-slate-900 dark:text-white">유동인구 분석</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">좌표 기반 행정동 분석 중...</p>
-          </div>
-        </div>
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
-        </div>
-      </div>
-    );
-  }
+  const links = getPopulationLinks();
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
@@ -207,182 +50,72 @@ export function PopulationSection({ business }: PopulationSectionProps) {
         </div>
         <div className="flex-1">
           <h3 className="font-bold text-slate-900 dark:text-white">유동인구 분석</h3>
-          {geoInfo && (
-            <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-              <Navigation className="w-3 h-3" />
-              {geoInfo.fullAddress}
-            </p>
-          )}
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            외부 서비스에서 상세 데이터 확인
+          </p>
         </div>
-        <Button
-          onClick={handleRefresh}
-          disabled={loading}
-          size="sm"
-          variant="outline"
-          className="shrink-0"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-        </Button>
       </div>
 
-      {/* 에러 */}
-      {error && !data && (
-        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
-          <p className="text-red-600 dark:text-red-400 text-sm font-bold">{error}</p>
-          {business?.location && (
-            <p className="text-red-500 dark:text-red-300 text-xs mt-1">
-              좌표: {business.location.lat.toFixed(6)}, {business.location.lng.toFixed(6)}
-            </p>
-          )}
+      {/* 좌표 정보 */}
+      {hasCoordinates && (
+        <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
+          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+            <MapPin className="w-4 h-4 text-emerald-500" />
+            <span className="font-medium">{business.name}</span>
+          </div>
+          <p className="text-xs text-slate-400 mt-1 ml-6">
+            좌표: {lat.toFixed(6)}, {lng.toFixed(6)}
+          </p>
         </div>
       )}
 
-      {/* 결과 */}
-      {data && (
-        <div className="space-y-4">
-          {/* 요약 카드 */}
-          <div className="grid grid-cols-3 gap-2">
-            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-3 text-center">
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-1">총 유동인구</p>
-              <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                {formatNumber(data.totalPopulation)}
-              </p>
-            </div>
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 text-center">
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-1">남성</p>
-              <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                {((data.malePopulation / data.totalPopulation) * 100).toFixed(0)}%
-              </p>
-            </div>
-            <div className="bg-pink-50 dark:bg-pink-900/20 rounded-xl p-3 text-center">
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-1">여성</p>
-              <p className="text-lg font-bold text-pink-600 dark:text-pink-400">
-                {((data.femalePopulation / data.totalPopulation) * 100).toFixed(0)}%
-              </p>
-            </div>
-          </div>
-
-          {/* 조회 정보 */}
-          <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
-            <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {formatDate(data.date)} {data.hour}시 기준
-            </span>
-          </div>
-
-          {/* 연령대별 분포 */}
-          <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4">
-            <p className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              연령대별 분포
-            </p>
-            <div className="space-y-2">
-              {groupedAge.map((ag, i) => {
-                const width = (ag.total / maxAgeTotal) * 100;
-                const maleRatio = ag.total > 0 ? (ag.male / ag.total) * 100 : 50;
-
-                return (
-                  <div key={i}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                        {ag.label}
-                      </span>
-                      <span className="text-[10px] text-slate-500">
-                        {formatNumber(ag.total)}명
-                      </span>
-                    </div>
-                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full flex rounded-full transition-all"
-                        style={{ width: `${width}%` }}
-                      >
-                        <div className="h-full bg-blue-500" style={{ width: `${maleRatio}%` }} />
-                        <div className="h-full bg-pink-500" style={{ width: `${100 - maleRatio}%` }} />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="flex items-center justify-center gap-6 mt-3 text-[10px]">
-              <span className="flex items-center gap-1">
-                <span className="w-2 h-2 bg-blue-500 rounded-full" />
-                남성
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2 h-2 bg-pink-500 rounded-full" />
-                여성
-              </span>
-            </div>
-          </div>
-
-          {/* 시간대별 유동인구 */}
-          {hourlyData && hourlyData.hourlyData.length > 0 && (
-            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4">
-              <p className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4" />
-                시간대별
-                {hourlyData.peakHour && (
-                  <span className="ml-auto text-emerald-600 dark:text-emerald-400 normal-case">
-                    피크 {hourlyData.peakHour.hour}시
-                  </span>
-                )}
-              </p>
-              <div className="flex items-end gap-[2px] h-20">
-                {hourlyData.hourlyData.map((h, i) => {
-                  const maxPop = Math.max(...hourlyData.hourlyData.map(d => d.population), 1);
-                  const height = (h.population / maxPop) * 100;
-                  const isPeak = hourlyData.peakHour?.hour === h.hour;
-
-                  return (
-                    <div key={i} className="flex-1 flex flex-col items-center">
-                      <div
-                        className={`w-full rounded-t transition-all ${
-                          isPeak ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'
-                        }`}
-                        style={{ height: `${height}%` }}
-                        title={`${h.hour}시: ${formatNumber(h.population)}명`}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="flex justify-between text-[9px] text-slate-400 mt-1">
-                <span>0시</span>
-                <span>12시</span>
-                <span>23시</span>
-              </div>
-            </div>
-          )}
-
-          {/* 인사이트 */}
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3">
-            <p className="text-xs font-bold text-amber-700 dark:text-amber-400 mb-2">
-              마케팅 인사이트
-            </p>
-            <ul className="text-[11px] text-amber-600 dark:text-amber-300 space-y-1">
-              {data.femalePopulation > data.malePopulation ? (
-                <li>여성 비율이 높습니다. 여성 타겟 마케팅이 효과적입니다.</li>
-              ) : (
-                <li>남성 비율이 높습니다. 남성 타겟 마케팅을 고려하세요.</li>
-              )}
-              {groupedAge[1].total + groupedAge[2].total > data.totalPopulation * 0.4 && (
-                <li>20-30대가 많습니다. SNS/인플루언서 마케팅 추천</li>
-              )}
-              {groupedAge[4].total + groupedAge[5].total > data.totalPopulation * 0.3 && (
-                <li>50대 이상이 많습니다. 오프라인 마케팅 병행 권장</li>
-              )}
-              {hourlyData?.peakHour && (
-                <li>피크 시간({hourlyData.peakHour.hour}시)에 맞춰 프로모션 진행</li>
-              )}
-            </ul>
-          </div>
+      {/* 외부 링크 버튼들 */}
+      {hasCoordinates ? (
+        <div className="space-y-2">
+          {links.map((link, index) => (
+            <a
+              key={index}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block"
+            >
+              <Button
+                variant="outline"
+                className="w-full justify-between h-auto py-3 px-4 hover:bg-slate-50 dark:hover:bg-slate-700"
+              >
+                <div className="text-left">
+                  <p className="font-medium text-slate-900 dark:text-white">
+                    {link.name}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {link.description}
+                  </p>
+                </div>
+                <ExternalLink className="w-4 h-4 text-slate-400 shrink-0" />
+              </Button>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+          <p className="text-amber-600 dark:text-amber-400 text-sm">
+            위치 좌표 정보가 없어 유동인구 분석을 할 수 없습니다.
+          </p>
         </div>
       )}
+
+      {/* 안내 문구 */}
+      <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+        <p className="text-xs text-amber-700 dark:text-amber-400">
+          <strong>TIP:</strong> 서울 생활인구 지도에서 해당 위치의 시간대별, 연령별, 성별 유동인구를 확인하세요.
+          소상공인 상권정보에서는 매출 분석도 가능합니다.
+        </p>
+      </div>
 
       {/* 데이터 출처 */}
       <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-4 text-center">
-        데이터: 서울시 열린데이터광장 (서울시+KT) | 좌표 기반 자동 감지
+        외부 서비스 연결 | 서울시, 통계청, 소상공인진흥공단
       </p>
     </div>
   );
