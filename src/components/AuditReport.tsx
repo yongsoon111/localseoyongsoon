@@ -16,6 +16,7 @@ import { AIReportSection } from './AIReportSection';
 import { CompetitorSection } from './CompetitorSection';
 import { ReviewQRGenerator } from './ReviewQRGenerator';
 import { KeywordResearch } from './KeywordResearch';
+import { PopulationSection } from './PopulationSection';
 
 interface AuditReportProps {
   business: BusinessInfo;
@@ -487,6 +488,9 @@ export function AuditReport({
                   placeId={business.placeId}
                   businessName={business.name}
                 />
+              </div>
+              <div className="mt-6">
+                <PopulationSection />
               </div>
             </section>
           )}
