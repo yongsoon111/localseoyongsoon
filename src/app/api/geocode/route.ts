@@ -33,10 +33,26 @@ let cachedGeoJSON: GeoJSON | null = null;
 async function loadGeoJSON(): Promise<GeoJSON> {
   if (cachedGeoJSON) return cachedGeoJSON;
 
-  const filePath = path.join(process.cwd(), 'public', 'data', 'seoul_dong.geojson');
-  const data = fs.readFileSync(filePath, 'utf8');
-  cachedGeoJSON = JSON.parse(data);
-  return cachedGeoJSON!;
+  // Vercel 환경에서는 파일 시스템 접근이 다를 수 있으므로 여러 방법 시도
+  try {
+    // 1. 로컬 파일 시스템 시도
+    const filePath = path.join(process.cwd(), 'public', 'data', 'seoul_dong.geojson');
+    const data = fs.readFileSync(filePath, 'utf8');
+    cachedGeoJSON = JSON.parse(data);
+    return cachedGeoJSON!;
+  } catch {
+    // 2. fetch로 public URL에서 가져오기 (Vercel 환경)
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+
+    const response = await fetch(`${baseUrl}/data/seoul_dong.geojson`);
+    if (!response.ok) {
+      throw new Error(`GeoJSON 파일을 불러올 수 없습니다: ${response.status}`);
+    }
+    cachedGeoJSON = await response.json();
+    return cachedGeoJSON!;
+  }
 }
 
 // Point in Polygon 알고리즘 (Ray Casting)
