@@ -109,6 +109,9 @@ export async function GET(req: NextRequest) {
     // 행정동 이름에서 동 이름만 추출 (예: "서울특별시 강남구 압구정동" → "압구정동")
     const dongName = props.adm_nm.split(' ').pop() || '';
 
+    // 서울시 생활인구 API는 adm_cd2의 앞 8자리를 사용
+    const seoulApiDongCode = props.adm_cd2.slice(0, 8);
+
     return NextResponse.json({
       lat,
       lng,
@@ -116,8 +119,9 @@ export async function GET(req: NextRequest) {
       sigungu: props.sggnm,         // "강남구"
       dong: dongName,               // "압구정동"
       fullAddress: props.adm_nm,    // "서울특별시 강남구 압구정동"
-      dongCode: props.adm_cd,       // "11680560" (8자리 - 서울시 API용)
+      dongCode: seoulApiDongCode,   // "11680560" (8자리 - 서울시 생활인구 API용)
       dongCode10: props.adm_cd2,    // "1168056000" (10자리)
+      admCode: props.adm_cd,        // "11680560" (통계청 8자리 코드)
       sggCode: props.sgg,           // "11680" (자치구 코드)
     });
   } catch (error) {
