@@ -1,18 +1,10 @@
 // src/app/api/keywords/route.ts
+// 키워드 검색량 조회 API (Search Volume Only - 저렴한 엔드포인트)
 
 import { NextRequest, NextResponse } from 'next/server';
 
 const DATAFORSEO_LOGIN = process.env.DATAFORSEO_LOGIN;
 const DATAFORSEO_PASSWORD = process.env.DATAFORSEO_PASSWORD;
-
-interface KeywordData {
-  keyword: string;
-  searchVolume: number;
-  competition: number;
-  competitionLevel: string;
-  cpc: number;
-  monthlySearches?: { year: number; month: number; search_volume: number }[];
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,8 +20,8 @@ export async function POST(req: NextRequest) {
 
     const auth = Buffer.from(`${DATAFORSEO_LOGIN}:${DATAFORSEO_PASSWORD}`).toString('base64');
 
-    // 연관 키워드 조회 (Keywords For Keywords)
-    const response = await fetch('https://api.dataforseo.com/v3/keywords_data/google_ads/keywords_for_keywords/live', {
+    // 검색량 조회 (Search Volume) - 연관 키워드 없이 입력한 키워드만
+    const response = await fetch('https://api.dataforseo.com/v3/keywords_data/google_ads/search_volume/live', {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${auth}`,
@@ -40,9 +32,7 @@ export async function POST(req: NextRequest) {
           keywords: [keyword],
           location_code: locationCode,
           language_code: 'ko',
-          include_seed_keyword: true,
-          sort_by: 'search_volume',
-          search_partners: true, // Google + 파트너 사이트(유튜브, 지도 등) 검색량 포함
+          search_partners: true,
         },
       ]),
     });
@@ -67,23 +57,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '결과를 찾을 수 없습니다' }, { status: 404 });
     }
 
-    // 결과 가공 - result 배열이 바로 키워드 목록
-    const keywords: KeywordData[] = results.slice(0, 50).map((item: any) => ({
-      keyword: item.keyword,
-      searchVolume: item.search_volume || 0,
-      competition: typeof item.competition === 'number' ? item.competition : (item.competition_index || 0) / 100,
-      competitionLevel: typeof item.competition === 'string' ? item.competition : 'UNKNOWN',
-      cpc: item.cpc || 0,
-      monthlySearches: item.monthly_searches || [],
-    }));
-
-    // 검색량 기준 정렬
-    keywords.sort((a, b) => b.searchVolume - a.searchVolume);
+    const item = results[0];
 
     return NextResponse.json({
-      seedKeyword: keyword,
-      totalResults: results.length || 0,
-      keywords,
+      keyword: item.keyword,
+      searchVolume: item.search_volume || 0,
+      competition: typeof item.competition === 'number' ? item.competition : 0,
+      competitionLevel: item.competition_level || 'UNKNOWN',
+      cpc: item.cpc || 0,
+      monthlySearches: item.monthly_searches || [],
     });
   } catch (error) {
     console.error('[Keywords API] Error:', error);

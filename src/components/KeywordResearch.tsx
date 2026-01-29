@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, TrendingUp, Loader2, DollarSign, Target, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, TrendingUp, Loader2, DollarSign, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-interface KeywordData {
+interface KeywordResult {
   keyword: string;
   searchVolume: number;
   competition: number;
@@ -13,18 +13,11 @@ interface KeywordData {
   cpc: number;
 }
 
-interface KeywordResult {
-  seedKeyword: string;
-  totalResults: number;
-  keywords: KeywordData[];
-}
-
 export function KeywordResearch() {
   const [keyword, setKeyword] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<KeywordResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
 
   const handleSearch = async () => {
     if (!keyword.trim()) return;
@@ -32,7 +25,6 @@ export function KeywordResearch() {
     setLoading(true);
     setError(null);
     setResult(null);
-    setCurrentIndex(0);
 
     try {
       const res = await fetch('/api/keywords', {
@@ -62,7 +54,7 @@ export function KeywordResearch() {
   };
 
   const getCompetitionColor = (level: string) => {
-    switch (level) {
+    switch (level?.toUpperCase()) {
       case 'LOW':
         return 'text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400';
       case 'MEDIUM':
@@ -74,47 +66,22 @@ export function KeywordResearch() {
     }
   };
 
+  const getCompetitionLabel = (level: string) => {
+    switch (level?.toUpperCase()) {
+      case 'LOW':
+        return '낮음';
+      case 'MEDIUM':
+        return '중간';
+      case 'HIGH':
+        return '높음';
+      default:
+        return '-';
+    }
+  };
+
   const formatNumber = (num: number) => {
     return num.toLocaleString('ko-KR');
   };
-
-  const handleExportCSV = () => {
-    if (!result) return;
-
-    const headers = ['키워드', '월간 검색량', '경쟁도', '경쟁 수준', 'CPC (원)'];
-    const rows = result.keywords.map((k) => [
-      k.keyword,
-      k.searchVolume.toString(),
-      (k.competition * 100).toFixed(1) + '%',
-      k.competitionLevel,
-      Math.round(k.cpc * 1300).toString(),
-    ]);
-
-    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `키워드_${keyword}_${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
-
-    URL.revokeObjectURL(url);
-  };
-
-  const handlePrev = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    }
-  };
-
-  const handleNext = () => {
-    if (result && currentIndex < result.keywords.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    }
-  };
-
-  const currentKeyword = result?.keywords[currentIndex];
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
@@ -123,8 +90,8 @@ export function KeywordResearch() {
           <Search className="w-5 h-5 text-purple-600 dark:text-purple-400" />
         </div>
         <div>
-          <h3 className="font-bold text-slate-900 dark:text-white">키워드 리서치</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400">연관 키워드와 검색량을 조회합니다</p>
+          <h3 className="font-bold text-slate-900 dark:text-white">키워드 검색량</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Google 월간 검색량 조회</p>
         </div>
       </div>
 
@@ -153,105 +120,43 @@ export function KeywordResearch() {
         </div>
       )}
 
-      {/* 결과 표시 - 1개씩 */}
-      {result && currentKeyword && (
-        <div>
-          {/* 네비게이션 헤더 */}
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              "<span className="font-bold text-slate-700 dark:text-slate-300">{result.seedKeyword}</span>" 연관 키워드
-            </p>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400">
-                {currentIndex + 1} / {result.keywords.length}
-              </span>
-              <Button onClick={handleExportCSV} variant="outline" size="sm">
-                <Download className="w-4 h-4" />
-              </Button>
-            </div>
+      {/* 결과 표시 */}
+      {result && (
+        <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-2xl p-6 border border-purple-200 dark:border-purple-800">
+          {/* 키워드 이름 */}
+          <div className="text-center mb-6">
+            <h4 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+              {result.keyword}
+            </h4>
+            <span
+              className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${getCompetitionColor(
+                result.competitionLevel
+              )}`}
+            >
+              경쟁도: {getCompetitionLabel(result.competitionLevel)}
+            </span>
           </div>
 
-          {/* 현재 키워드 카드 */}
-          <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-2xl p-6 border border-purple-200 dark:border-purple-800">
-            {/* 키워드 이름 */}
-            <div className="text-center mb-6">
-              <h4 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-                {currentKeyword.keyword}
-              </h4>
-              <span
-                className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${getCompetitionColor(
-                  currentKeyword.competitionLevel
-                )}`}
-              >
-                경쟁도: {currentKeyword.competitionLevel === 'LOW'
-                  ? '낮음'
-                  : currentKeyword.competitionLevel === 'MEDIUM'
-                  ? '중간'
-                  : currentKeyword.competitionLevel === 'HIGH'
-                  ? '높음'
-                  : '-'}
-              </span>
-            </div>
-
-            {/* 지표들 */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white dark:bg-slate-800 rounded-xl p-4 text-center">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <TrendingUp className="w-5 h-5 text-blue-500" />
-                  <span className="text-xs text-slate-500 dark:text-slate-400">월간 검색량</span>
-                </div>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {formatNumber(currentKeyword.searchVolume)}
-                </p>
+          {/* 지표들 */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-4 text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <TrendingUp className="w-5 h-5 text-blue-500" />
+                <span className="text-xs text-slate-500 dark:text-slate-400">월간 검색량</span>
               </div>
-              <div className="bg-white dark:bg-slate-800 rounded-xl p-4 text-center">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <DollarSign className="w-5 h-5 text-green-500" />
-                  <span className="text-xs text-slate-500 dark:text-slate-400">클릭당 비용</span>
-                </div>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {currentKeyword.cpc > 0 ? `₩${Math.round(currentKeyword.cpc * 1300).toLocaleString()}` : '-'}
-                </p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {formatNumber(result.searchVolume)}
+              </p>
+            </div>
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-4 text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <DollarSign className="w-5 h-5 text-green-500" />
+                <span className="text-xs text-slate-500 dark:text-slate-400">클릭당 비용</span>
               </div>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {result.cpc > 0 ? `₩${Math.round(result.cpc * 1300).toLocaleString()}` : '-'}
+              </p>
             </div>
-          </div>
-
-          {/* 이전/다음 버튼 */}
-          <div className="flex items-center justify-between mt-4">
-            <Button
-              onClick={handlePrev}
-              disabled={currentIndex === 0}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              이전
-            </Button>
-            <div className="flex gap-1">
-              {result.keywords.slice(0, 10).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentIndex(i)}
-                  className={`w-2 h-2 rounded-full transition-colors ${
-                    i === currentIndex
-                      ? 'bg-purple-600'
-                      : 'bg-slate-300 dark:bg-slate-600 hover:bg-purple-400'
-                  }`}
-                />
-              ))}
-              {result.keywords.length > 10 && (
-                <span className="text-xs text-slate-400 ml-1">...</span>
-              )}
-            </div>
-            <Button
-              onClick={handleNext}
-              disabled={currentIndex === result.keywords.length - 1}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              다음
-              <ChevronRight className="w-4 h-4" />
-            </Button>
           </div>
         </div>
       )}
@@ -262,7 +167,7 @@ export function KeywordResearch() {
           <p className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-2">검색 팁</p>
           <ul className="text-xs text-slate-500 dark:text-slate-400 space-y-1">
             <li>• 지역명 + 업종으로 검색하세요 (예: 강남 성형외과)</li>
-            <li>• 검색량이 높고 경쟁도가 낮은 키워드를 노리세요</li>
+            <li>• 검색량이 높고 경쟁도가 낮은 키워드가 좋습니다</li>
             <li>• CPC가 높은 키워드는 상업적 가치가 높습니다</li>
           </ul>
         </div>
