@@ -157,21 +157,21 @@ interface PopulationData {
 
 export async function POST(req: NextRequest) {
   try {
-    const { district, dong, date, hour } = await req.json();
+    const { district, dong, dongCode, date, hour } = await req.json();
 
     if (!SEOUL_API_KEY) {
       return NextResponse.json({ error: '서울시 API 키가 설정되지 않았습니다' }, { status: 500 });
     }
 
     // 구 목록 반환
-    if (!district && !dong) {
+    if (!district && !dong && !dongCode) {
       return NextResponse.json({
         districts: Object.keys(DISTRICT_CODES),
       });
     }
 
     // 해당 구의 동 목록 반환
-    if (district && !dong) {
+    if (district && !dong && !dongCode) {
       const dongs = DISTRICT_CODES[district];
       if (!dongs) {
         return NextResponse.json({ error: '해당 구의 데이터가 없습니다' }, { status: 404 });
@@ -182,18 +182,29 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 유동인구 데이터 조회
-    const dongs = DISTRICT_CODES[district];
-    if (!dongs) {
-      return NextResponse.json({ error: '해당 구의 데이터가 없습니다' }, { status: 404 });
-    }
+    // dongCode가 직접 제공된 경우 (좌표 기반 조회)
+    let dongCode8: string;
+    let dongName: string;
 
-    const dongInfo = dongs.find(d => d.name === dong);
-    if (!dongInfo) {
-      return NextResponse.json({ error: '해당 동의 데이터가 없습니다' }, { status: 404 });
-    }
+    if (dongCode) {
+      // dongCode는 8자리 코드
+      dongCode8 = dongCode;
+      dongName = dong || '행정동';
+    } else {
+      // 기존 방식: district + dong으로 조회
+      const dongs = DISTRICT_CODES[district];
+      if (!dongs) {
+        return NextResponse.json({ error: '해당 구의 데이터가 없습니다' }, { status: 404 });
+      }
 
-    const dongCode8 = to8DigitCode(dongInfo.code);
+      const dongInfo = dongs.find(d => d.name === dong);
+      if (!dongInfo) {
+        return NextResponse.json({ error: '해당 동의 데이터가 없습니다' }, { status: 404 });
+      }
+
+      dongCode8 = to8DigitCode(dongInfo.code);
+      dongName = dong;
+    }
 
     // 날짜 기본값: 5일 전 (서울시 API는 5일 전 데이터까지 제공)
     const targetDate = date || getDefaultDate();
@@ -257,7 +268,7 @@ export async function POST(req: NextRequest) {
       date: dongData.STDR_DE_ID,
       hour: dongData.TMZON_PD_SE,
       dongCode: dongData.ADSTRD_CODE_SE,
-      dongName: dong,
+      dongName: dongName,
       totalPopulation: Math.round(parseFloat(dongData.TOT_LVPOP_CO) || 0),
       malePopulation: maleTotal,
       femalePopulation: femaleTotal,
@@ -280,27 +291,36 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const district = searchParams.get('district');
     const dong = searchParams.get('dong');
+    const dongCodeParam = searchParams.get('dongCode');
     const date = searchParams.get('date') || getDefaultDate();
 
     if (!SEOUL_API_KEY) {
       return NextResponse.json({ error: '서울시 API 키가 설정되지 않았습니다' }, { status: 500 });
     }
 
-    if (!district || !dong) {
-      return NextResponse.json({ error: '구와 동을 지정해주세요' }, { status: 400 });
-    }
+    let dongCode8: string;
 
-    const dongs = DISTRICT_CODES[district];
-    if (!dongs) {
-      return NextResponse.json({ error: '해당 구의 데이터가 없습니다' }, { status: 404 });
-    }
+    if (dongCodeParam) {
+      // dongCode가 직접 제공된 경우
+      dongCode8 = dongCodeParam;
+    } else {
+      // 기존 방식: district + dong으로 조회
+      if (!district || !dong) {
+        return NextResponse.json({ error: '구와 동을 지정해주세요' }, { status: 400 });
+      }
 
-    const dongInfo = dongs.find(d => d.name === dong);
-    if (!dongInfo) {
-      return NextResponse.json({ error: '해당 동의 데이터가 없습니다' }, { status: 404 });
-    }
+      const dongs = DISTRICT_CODES[district];
+      if (!dongs) {
+        return NextResponse.json({ error: '해당 구의 데이터가 없습니다' }, { status: 404 });
+      }
 
-    const dongCode8 = to8DigitCode(dongInfo.code);
+      const dongInfo = dongs.find(d => d.name === dong);
+      if (!dongInfo) {
+        return NextResponse.json({ error: '해당 동의 데이터가 없습니다' }, { status: 404 });
+      }
+
+      dongCode8 = to8DigitCode(dongInfo.code);
+    }
 
     // 하루 전체 데이터 조회 (24시간)
     const url = `http://openapi.seoul.go.kr:8088/${SEOUL_API_KEY}/json/SPOP_LOCAL_RESD_DONG/1/1000/${date}`;

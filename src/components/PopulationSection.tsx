@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Users, MapPin, Clock, TrendingUp, Loader2, BarChart3, RefreshCw } from 'lucide-react';
+import { Users, MapPin, Clock, TrendingUp, Loader2, BarChart3, RefreshCw, Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BusinessInfo } from '@/types';
 
@@ -36,155 +36,75 @@ interface HourlyResponse {
   peakHour: HourlyData;
 }
 
+interface GeocodeResult {
+  sido: string;
+  sigungu: string;
+  dong: string;
+  fullAddress: string;
+  dongCode: string;
+}
+
 interface PopulationSectionProps {
   business: BusinessInfo;
 }
 
-// 주소에서 구 추출
-function extractDistrict(address: string): string | null {
-  const match = address.match(/(강남구|서초구|송파구|마포구|종로구|중구|용산구|성동구|광진구|동대문구|중랑구|성북구|강북구|도봉구|노원구|은평구|서대문구|양천구|강서구|구로구|금천구|영등포구|동작구|관악구|서초구|강동구)/);
-  return match ? match[1] : null;
-}
-
-// 도로명/지번 주소에서 동 이름 추정
-function extractDongFromAddress(address: string): string | null {
-  // 도로명에서 동 이름 추정 (압구정로 -> 압구정동)
-  const roadMatch = address.match(/([가-힣]+)(로|길|대로)/);
-  if (roadMatch) {
-    const baseName = roadMatch[1];
-    // 흔한 동 이름 패턴
-    const possibleDong = baseName.replace(/(대|중앙|북|남|동|서)$/, '');
-    return possibleDong;
-  }
-
-  // 지번 주소에서 동 추출
-  const dongMatch = address.match(/([가-힣]+[0-9]*)동/);
-  if (dongMatch) {
-    return dongMatch[1] + '동';
-  }
-
-  return null;
-}
-
-// 동 이름 매칭 (유사 매칭)
-function findMatchingDong(dongHint: string, availableDongs: string[]): string | null {
-  if (!dongHint) return null;
-
-  // 정확히 일치
-  const exact = availableDongs.find(d => d === dongHint || d === dongHint + '동');
-  if (exact) return exact;
-
-  // 시작 부분 일치
-  const startsWith = availableDongs.find(d => d.startsWith(dongHint) || dongHint.startsWith(d.replace(/동$/, '').replace(/[0-9]/, '')));
-  if (startsWith) return startsWith;
-
-  // 포함 여부
-  const includes = availableDongs.find(d => d.includes(dongHint) || dongHint.includes(d.replace(/동$/, '').replace(/[0-9]/, '')));
-  if (includes) return includes;
-
-  return null;
-}
-
 export function PopulationSection({ business }: PopulationSectionProps) {
-  const [dongs, setDongs] = useState<string[]>([]);
-  const [detectedDistrict, setDetectedDistrict] = useState<string | null>(null);
-  const [detectedDong, setDetectedDong] = useState<string | null>(null);
-  const [selectedDong, setSelectedDong] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [data, setData] = useState<PopulationData | null>(null);
   const [hourlyData, setHourlyData] = useState<HourlyResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [geoInfo, setGeoInfo] = useState<GeocodeResult | null>(null);
 
-  // 비즈니스 주소에서 구/동 자동 감지
+  // 비즈니스 좌표로 행정동 자동 감지 및 유동인구 조회
   useEffect(() => {
-    if (!business?.address) {
-      setInitialLoading(false);
-      setError('주소 정보가 없습니다');
+    if (!business?.location?.lat || !business?.location?.lng) {
+      setLoading(false);
+      setError('위치 좌표 정보가 없습니다');
       return;
     }
 
-    const district = extractDistrict(business.address);
-    if (!district) {
-      setInitialLoading(false);
-      setError('서울시 외 지역은 지원하지 않습니다');
-      return;
-    }
+    fetchPopulationByCoordinates(business.location.lat, business.location.lng);
+  }, [business?.location?.lat, business?.location?.lng]);
 
-    setDetectedDistrict(district);
-
-    // 주소에서 동 힌트 추출
-    const dongHint = extractDongFromAddress(business.address);
-
-    // 해당 구의 동 목록 가져오기
-    fetchDongsAndAutoSelect(district, dongHint);
-  }, [business?.address]);
-
-  const fetchDongsAndAutoSelect = async (district: string, dongHint: string | null) => {
-    try {
-      const res = await fetch('/api/population', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ district }),
-      });
-      const result = await res.json();
-
-      if (result.error) {
-        setError(result.error);
-        setInitialLoading(false);
-        return;
-      }
-
-      if (result.dongs) {
-        setDongs(result.dongs);
-
-        // 동 자동 선택
-        if (dongHint) {
-          const matchedDong = findMatchingDong(dongHint, result.dongs);
-          if (matchedDong) {
-            setDetectedDong(matchedDong);
-            setSelectedDong(matchedDong);
-            // 자동으로 데이터 조회
-            await fetchPopulationData(district, matchedDong);
-          } else {
-            // 첫 번째 동 선택
-            setSelectedDong(result.dongs[0]);
-          }
-        } else {
-          setSelectedDong(result.dongs[0]);
-        }
-      }
-    } catch (err) {
-      console.error('동 목록 로드 실패:', err);
-      setError('동 목록을 불러오는데 실패했습니다');
-    } finally {
-      setInitialLoading(false);
-    }
-  };
-
-  const fetchPopulationData = async (district: string, dong: string) => {
+  const fetchPopulationByCoordinates = async (lat: number, lng: number) => {
     setLoading(true);
     setError(null);
 
     try {
-      // 현재 시간대 데이터 조회
-      const res = await fetch('/api/population', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ district, dong }),
-      });
-      const result = await res.json();
+      // 1. 좌표 → 행정동 변환
+      const geoRes = await fetch(`/api/geocode?lat=${lat}&lng=${lng}`);
+      const geoData = await geoRes.json();
 
-      if (result.error) {
-        setError(result.error);
+      if (geoData.error) {
+        setError(geoData.error);
+        setLoading(false);
         return;
       }
 
-      setData(result);
+      setGeoInfo(geoData);
 
-      // 시간대별 데이터 조회
+      // 2. 유동인구 데이터 조회 (dongCode로 직접 조회)
+      const popRes = await fetch('/api/population', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dongCode: geoData.dongCode,  // 8자리 행정동 코드로 직접 조회
+          dong: geoData.dong,
+        }),
+      });
+      const popData = await popRes.json();
+
+      if (popData.error) {
+        setError(`${geoData.sigungu} ${geoData.dong}의 유동인구 데이터를 불러올 수 없습니다`);
+        setLoading(false);
+        return;
+      }
+
+      setData(popData);
+
+      // 3. 시간대별 데이터 조회 (dongCode로 직접 조회)
       const hourlyRes = await fetch(
-        `/api/population?district=${encodeURIComponent(district)}&dong=${encodeURIComponent(dong)}`
+        `/api/population?dongCode=${encodeURIComponent(geoData.dongCode)}`
       );
       const hourlyResult = await hourlyRes.json();
 
@@ -192,15 +112,17 @@ export function PopulationSection({ business }: PopulationSectionProps) {
         setHourlyData(hourlyResult);
       }
     } catch (err) {
+      console.error('유동인구 조회 오류:', err);
       setError('유동인구 조회 중 오류가 발생했습니다');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearch = () => {
-    if (!detectedDistrict || !selectedDong) return;
-    fetchPopulationData(detectedDistrict, selectedDong);
+  const handleRefresh = () => {
+    if (business?.location?.lat && business?.location?.lng) {
+      fetchPopulationByCoordinates(business.location.lat, business.location.lng);
+    }
   };
 
   const formatNumber = (num: number) => num.toLocaleString('ko-KR');
@@ -258,7 +180,7 @@ export function PopulationSection({ business }: PopulationSectionProps) {
   const maxAgeTotal = Math.max(...groupedAge.map(g => g.total), 1);
 
   // 로딩 중
-  if (initialLoading) {
+  if (loading) {
     return (
       <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
         <div className="flex items-center gap-3 mb-6">
@@ -267,7 +189,7 @@ export function PopulationSection({ business }: PopulationSectionProps) {
           </div>
           <div>
             <h3 className="font-bold text-slate-900 dark:text-white">유동인구 분석</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">주소 분석 중...</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">좌표 기반 행정동 분석 중...</p>
           </div>
         </div>
         <div className="flex items-center justify-center py-8">
@@ -285,47 +207,33 @@ export function PopulationSection({ business }: PopulationSectionProps) {
         </div>
         <div className="flex-1">
           <h3 className="font-bold text-slate-900 dark:text-white">유동인구 분석</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            {business.address}
-          </p>
+          {geoInfo && (
+            <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+              <Navigation className="w-3 h-3" />
+              {geoInfo.fullAddress}
+            </p>
+          )}
         </div>
+        <Button
+          onClick={handleRefresh}
+          disabled={loading}
+          size="sm"
+          variant="outline"
+          className="shrink-0"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+        </Button>
       </div>
-
-      {/* 감지된 위치 & 동 선택 */}
-      {detectedDistrict && (
-        <div className="flex items-center gap-2 mb-4">
-          <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-            <MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
-              {detectedDistrict}
-            </span>
-          </div>
-          <select
-            value={selectedDong}
-            onChange={(e) => setSelectedDong(e.target.value)}
-            className="flex-1 px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-          >
-            {dongs.map(d => (
-              <option key={d} value={d}>
-                {d} {d === detectedDong && '(자동감지)'}
-              </option>
-            ))}
-          </select>
-          <Button
-            onClick={handleSearch}
-            disabled={loading}
-            size="sm"
-            className="bg-emerald-600 hover:bg-emerald-700 text-white"
-          >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-          </Button>
-        </div>
-      )}
 
       {/* 에러 */}
       {error && !data && (
         <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
           <p className="text-red-600 dark:text-red-400 text-sm font-bold">{error}</p>
+          {business?.location && (
+            <p className="text-red-500 dark:text-red-300 text-xs mt-1">
+              좌표: {business.location.lat.toFixed(6)}, {business.location.lng.toFixed(6)}
+            </p>
+          )}
         </div>
       )}
 
@@ -474,7 +382,7 @@ export function PopulationSection({ business }: PopulationSectionProps) {
 
       {/* 데이터 출처 */}
       <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-4 text-center">
-        데이터 출처: 서울시 열린데이터광장 (서울시+KT)
+        데이터: 서울시 열린데이터광장 (서울시+KT) | 좌표 기반 자동 감지
       </p>
     </div>
   );
