@@ -21,7 +21,7 @@ export function PopulationSection({ business }: PopulationSectionProps) {
     return [
       {
         name: '서울 생활인구 지도',
-        description: '서울시 실시간 유동인구 (KT 기반)',
+        description: '내국인/외국인 · 동별 · 시간대별 유동인구',
         url: 'https://data.seoul.go.kr/dataVisual/seoul/seoulLivingPopulation.do',
         color: 'bg-blue-500 hover:bg-blue-600',
       },
@@ -30,12 +30,6 @@ export function PopulationSection({ business }: PopulationSectionProps) {
         description: '통계청 인구/상권 분석',
         url: `https://sgis.kostat.go.kr/view/map/interactiveMap/main?coords=${lng},${lat}`,
         color: 'bg-emerald-500 hover:bg-emerald-600',
-      },
-      {
-        name: '소상공인 상권정보',
-        description: '상권분석 및 유동인구',
-        url: 'https://sg.sbiz.or.kr/godo/index.sg',
-        color: 'bg-orange-500 hover:bg-orange-600',
       },
     ];
   };
@@ -108,14 +102,13 @@ export function PopulationSection({ business }: PopulationSectionProps) {
       {/* 안내 문구 */}
       <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
         <p className="text-xs text-amber-700 dark:text-amber-400">
-          <strong>TIP:</strong> 서울 생활인구 지도에서 해당 위치의 시간대별, 연령별, 성별 유동인구를 확인하세요.
-          소상공인 상권정보에서는 매출 분석도 가능합니다.
+          <strong>TIP:</strong> 서울 생활인구 지도에서 내국인/외국인(장기·단기체류) 유동인구를 동별, 시간대별로 확인할 수 있습니다.
         </p>
       </div>
 
       {/* 데이터 출처 */}
       <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-4 text-center">
-        외부 서비스 연결 | 서울시, 통계청, 소상공인진흥공단
+        외부 서비스 연결 | 서울시 열린데이터광장, 통계청
       </p>
     </div>
   );
