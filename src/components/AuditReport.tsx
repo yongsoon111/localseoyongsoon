@@ -490,7 +490,7 @@ export function AuditReport({
                 />
               </div>
               <div className="mt-6">
-                <PopulationSection />
+                <PopulationSection business={business} />
               </div>
             </section>
           )}
